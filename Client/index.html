@@ -11,7 +11,7 @@
       <div class="min-h-screen">
         <header class="header">
           <div class="container">
-            <div class="flex-between">
+            <div class="flex items-center justify-between">
               <div>
                 <h1 class="header-title">Signal Equalizer</h1>
                 <p class="header-subtitle">
@@ -27,28 +27,28 @@
           </div>
         </header>
 
-        <main class="container">
-          <div class="card">
+        <main class="container-main">
+          <div class="card card-backdrop-blur card-dashed">
+            <input
+              type="file"
+              id="jsonFile"
+              accept=".json,application/json"
+              class="file-input hidden"
+              onchange="handleJsonUpload(event)"
+            />
+
             <div class="file-uploader">
               <div class="file-uploader-icon">📄</div>
 
-              <div class="file-uploader-text">
+              <div>
                 <h3 class="file-uploader-title">Load JSON Configuration</h3>
                 <p class="file-uploader-subtitle">
                   Upload a JSON file containing signal equalizer settings
                 </p>
               </div>
 
-              <input
-                type="file"
-                id="jsonFile"
-                accept=".json,application/json"
-                class="file-input"
-                onchange="handleJsonUpload(event)"
-              />
-
               <button
-                class="btn"
+                class="btn btn-default btn-lg"
                 onclick="document.getElementById('jsonFile').click()"
               >
                 ⬆ Choose JSON File
@@ -57,6 +57,7 @@
               <p id="fileStatus" class="file-status"></p>
             </div>
           </div>
+
           <div
             id="mainApp"
             style="display: none"

@@ -97,6 +97,12 @@ button {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 var(--spacing-md);
+}
+.container-main {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--spacing-md);
   padding: "2rem 1rem";
 }
 
@@ -200,8 +206,7 @@ button {
   font-weight: 500;
   color: var(--color-foreground);
 }
-
-/* Card Component */
+/* ------------------ Card ------------------ */
 .card {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
@@ -874,18 +879,6 @@ button {
 .slide-in {
   animation: slideIn 0.2s ease-out;
 }
-/* ------------------ Card ------------------ */
-.card {
-  background-color: var(--color-card);
-  color: var(--color-card-foreground);
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius-lg);
-  padding: var(--spacing-2xl);
-  margin-top: var(--spacing-2xl);
-  text-align: center;
-  box-shadow: var(--shadow-panel);
-  backdrop-filter: blur(8px);
-}
 
 /* ------------------ File Uploader ------------------ */
 .file-uploader-icon {
@@ -912,25 +905,6 @@ button {
   display: none;
 }
 
-/* ------------------ Button ------------------ */
-.btn {
-  background-color: var(--color-primary);
-  color: var(--color-primary-foreground);
-  border: none;
-  padding: var(--spacing-sm) var(--spacing-lg);
-  border-radius: var(--radius-md);
-  font-size: 1rem;
-  cursor: pointer;
-  font-weight: 500;
-  box-shadow: var(--shadow-glow);
-  transition: all 0.2s ease;
-}
-
-.btn:hover {
-  background-color: var(--color-accent);
-  transform: translateY(-1px);
-  box-shadow: 0 0 25px hsla(170, 80%, 50%, 0.5);
-}
 .file-status {
   margin-top: var(--spacing-md);
   font-size: 0.95rem;
