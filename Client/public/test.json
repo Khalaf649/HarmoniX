@@ -1,0 +1,22 @@
+{
+  "original_signal": "public/manga.mp3",
+  "generic": {
+    "sliders": [
+      { "name": "Bass", "low": 20, "high": 250, "value": 1.5 },
+      { "name": "Treble", "low": 5000, "high": 20000, "value": 0.8 }
+    ],
+    "output_signal": "public/manga.mp3"
+  },
+  "musical": {
+    "sliders": [{ "name": "Mids", "low": 250, "high": 4000, "value": 1.2 }],
+    "output_signal": ""
+  },
+  "human_voices": {
+    "sliders": [],
+    "output_signal": ""
+  },
+  "animal_voices": {
+    "sliders": [{ "name": "Highs", "low": 2000, "high": 8000, "value": 1.1 }],
+    "output_signal": ""
+  }
+}
