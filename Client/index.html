@@ -18,83 +18,85 @@
                   Professional Audio Processing & Analysis
                 </p>
               </div>
-
               <div class="header-file-info">
-                <p class="header-file-label">Loaded File:</p>
-                <p class="header-file-name">None</p>
+                <p class="header-file-label"></p>
+                <p class="header-file-name"></p>
               </div>
             </div>
           </div>
         </header>
-
         <main class="container-main">
-          <div class="card card-backdrop-blur card-dashed">
+          <div class="card card-backdrop-blur card-dashed mt-6">
             <input
               type="file"
-              id="jsonFile"
               accept=".json,application/json"
-              class="file-input hidden"
-              onchange="handleJsonUpload(event)"
+              class="hidden"
+              id="jsonFile"
             />
 
             <div class="file-uploader">
-              <div class="file-uploader-icon">📄</div>
+              <div class="file-uploader-icon">
+                <!-- JSON file icon -->
+                <svg
+                  class="icon-md"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 2h8l5 5v13a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
+                  />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M14 2v6h6"
+                  />
+                  <text
+                    x="8"
+                    y="17"
+                    font-size="6"
+                    font-weight="bold"
+                    fill="currentColor"
+                  >
+                    { }
+                  </text>
+                </svg>
+              </div>
 
-              <div>
+              <div class="file-uploader-text">
                 <h3 class="file-uploader-title">Load JSON Configuration</h3>
                 <p class="file-uploader-subtitle">
-                  Upload a JSON file containing signal equalizer settings
+                  Upload a <code>.json</code> file containing signal equalizer
+                  settings
                 </p>
               </div>
 
               <button
                 class="btn btn-default btn-lg"
-                onclick="document.getElementById('jsonFile').click()"
+                onclick="document.getElementById('file-input').click()"
               >
-                ⬆ Choose JSON File
+                <!-- Upload icon (replacement for Upload component) -->
+                <svg
+                  class="icon-md margin-right-05"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                  ></path>
+                </svg>
+                Choose File
               </button>
-
-              <p id="fileStatus" class="file-status"></p>
-            </div>
-          </div>
-
-          <div
-            id="mainApp"
-            style="display: none"
-            class="grid grid-cols-1 lg:grid-cols-3 gap-6"
-          >
-            <div class="lg:col-span-2 space-y-6">
-              <canvas id="inputSignalCanvas" class="plot-canvas"></canvas>
-              <canvas id="outputSignalCanvas" class="plot-canvas"></canvas>
-              <canvas id="inputFourierCanvas" class="plot-canvas"></canvas>
-              <canvas id="outputFourierCanvas" class="plot-canvas"></canvas>
-            </div>
-
-            <div class="space-y-4">
-              <div class="control-panel">
-                <label for="modeSelect">Mode:</label>
-                <select id="modeSelect">
-                  <option value="generic">Generic</option>
-                  <option value="musical">Musical</option>
-                  <option value="human_voices">Human Voices</option>
-                  <option value="animal_voices">Animal Voices</option>
-                </select>
-
-                <div id="slidersContainer" class="sliders-container">
-                  <!-- sliders will be rendered dynamically -->
-                </div>
-
-                <button id="addSliderBtn" class="btn small">
-                  + Add Slider
-                </button>
-                <button id="resetBtn" class="btn small secondary">
-                  Reset Amps
-                </button>
-                <button id="applyBtn" class="btn small accent">
-                  Apply Equalizer
-                </button>
-                <button id="saveBtn" class="btn small">Download JSON</button>
-              </div>
             </div>
           </div>
         </main>

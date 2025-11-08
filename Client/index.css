@@ -105,6 +105,9 @@ button {
   padding: 0 var(--spacing-md);
   padding: "2rem 1rem";
 }
+.mt-6 {
+  margin-top: 2rem; /* Adjust as needed */
+}
 
 .flex {
   display: flex;
@@ -191,11 +194,6 @@ button {
 .header-file-info {
   text-align: right;
 }
-.flex-between {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
 
 .header-file-label {
   font-size: 0.875rem;
@@ -206,7 +204,8 @@ button {
   font-weight: 500;
   color: var(--color-foreground);
 }
-/* ------------------ Card ------------------ */
+
+/* Card Component */
 .card {
   background-color: var(--color-card);
   border: 1px solid var(--color-border);
@@ -878,36 +877,4 @@ button {
 
 .slide-in {
   animation: slideIn 0.2s ease-out;
-}
-
-/* ------------------ File Uploader ------------------ */
-.file-uploader-icon {
-  font-size: 2.8rem;
-  margin-bottom: var(--spacing-md);
-  color: var(--color-primary);
-  text-shadow: var(--shadow-glow);
-}
-
-.file-uploader-title {
-  font-size: 1.4rem;
-  font-weight: 600;
-  margin-bottom: var(--spacing-xs);
-}
-
-.file-uploader-subtitle {
-  font-size: 0.95rem;
-  color: var(--color-muted-foreground);
-  margin-bottom: var(--spacing-lg);
-}
-
-/* Hidden input */
-.file-input {
-  display: none;
-}
-
-.file-status {
-  margin-top: var(--spacing-md);
-  font-size: 0.95rem;
-  color: var(--color-muted-foreground);
-  transition: color 0.2s ease;
 }
