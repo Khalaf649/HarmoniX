@@ -5,6 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Signal Equalizer</title>
+   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <link rel="stylesheet" href="index.css" />
 </head>
 
@@ -73,9 +74,8 @@
                 <div class="signal-viewer-duration">No Signal</div>
               </div>
 
-              <div class="signal-viewer-canvas-wrapper">
-                <canvas id="input-canvas" class="signal-viewer-canvas"></canvas>
-              </div>
+              <div class="signal-plot-container" style="width: 100%; height: 300px;"></div>
+
 
               <div class="playback-controls">
                 <div class="playback-controls-group">
@@ -131,9 +131,7 @@
                 <div class="signal-viewer-duration">No Signal</div>
               </div>
 
-              <div class="signal-viewer-canvas-wrapper">
-                <canvas id="output-canvas" class="signal-viewer-canvas"></canvas>
-              </div>
+             <div class="signal-plot-container" style="width: 100%; height: 300px;"></div>
 
               <div class="playback-controls">
                 <div class="playback-controls-group">

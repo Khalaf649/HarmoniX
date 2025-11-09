@@ -24,13 +24,10 @@ export class SignalViewer {
     this.offset = 0;
     this.currentTime = 0;
 
-    // Canvas setup
-    this.canvas = this.container.querySelector(".signal-viewer-canvas");
-    if (!this.canvas)
-      throw new Error("Canvas element not found inside container");
-    this.ctx = this.canvas.getContext("2d");
-    this.canvas.width = 800;
-    this.canvas.height = 200;
+    // Plot container
+    this.plotContainer = this.container.querySelector(".signal-plot-container");
+    if (!this.plotContainer)
+      throw new Error("Plot container element not found inside container");
 
     // Child controls
     this.playBtn = this.container.querySelector(".play-btn");
@@ -47,8 +44,16 @@ export class SignalViewer {
       ".signal-viewer-duration"
     );
     this.panSlider = this.container.querySelector(".pan-slider");
-
     this.signalTitle.textContent = this.title;
+
+    // Plotly data
+    this.plotData = [];
+    this.plotLayout = {};
+    this.plotConfig = {
+      displayModeBar: false,
+      staticPlot: false,
+      responsive: true,
+    };
 
     this.bindControls();
     this.render();
@@ -65,6 +70,7 @@ export class SignalViewer {
     this.currentTime = this.audio.currentTime;
     this.render();
   }
+
   clampOffset() {
     const maxOffset = Math.max(0, 1 - 1 / this.zoom);
     this.offset = Math.min(Math.max(this.offset, 0), maxOffset);
@@ -100,7 +106,7 @@ export class SignalViewer {
       this.setSpeed(parseFloat(e.target.value))
     );
     this.panSlider?.addEventListener("input", (e) => {
-      this.offset = parseFloat(e.target.value); // 0 to 1 (full navigation)
+      this.offset = parseFloat(e.target.value);
       this.render();
     });
   }
@@ -141,7 +147,7 @@ export class SignalViewer {
   }
 
   zoomIn() {
-    this.zoom = Math.min(this.zoom * 1.5, 2000);
+    this.zoom = Math.min(this.zoom * 1.5, 4000);
     this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
     this.clampOffset();
     this.render();
@@ -182,80 +188,149 @@ export class SignalViewer {
     this.render();
   }
 
-  render() {
-    if (!this.samples || !this.samples.length) return;
-    const ctx = this.ctx,
-      w = this.canvas.width,
-      h = this.canvas.height;
+  getVisibleData() {
+    if (!this.samples.length) return { visibleTime: [], visibleSamples: [] };
 
-    ctx.clearRect(0, 0, w, h);
-
-    const midY = h / 2;
-    const samplesPerPixel = Math.max(
-      1,
-      Math.floor(this.samples.length / (w * this.zoom))
+    const totalSamples = this.samples.length;
+    const visibleSamplesCount = Math.floor(totalSamples / this.zoom);
+    const startSample = Math.floor(
+      this.offset * (totalSamples - visibleSamplesCount)
     );
-    const startSample = Math.floor(this.offset * this.samples.length);
-    const currentSample = Math.floor(this.currentTime * this.sampleRate);
-    const currentPixel = Math.floor(
-      (currentSample - startSample) / samplesPerPixel
-    );
+    const endSample = Math.min(startSample + visibleSamplesCount, totalSamples);
 
-    const drawSignal = (color, startX, endX) => {
-      ctx.strokeStyle = color;
-      ctx.beginPath();
-      for (let x = startX; x < endX && x < w; x++) {
-        const sampleIdx = startSample + x * samplesPerPixel;
-        if (sampleIdx >= this.samples.length) break;
+    // Downsample for better performance with large datasets
+    const maxPoints = 2000; // Maximum points to display for performance
+    const step = Math.ceil((endSample - startSample) / maxPoints);
 
-        let min = Infinity,
-          max = -Infinity;
-        for (
-          let i = 0;
-          i < samplesPerPixel && sampleIdx + i < this.samples.length;
-          i++
-        ) {
-          const val = this.samples[sampleIdx + i];
-          min = Math.min(min, val);
-          max = Math.max(max, val);
-        }
+    const visibleTime = [];
+    const visibleSamples = [];
 
-        const yMin = midY - min * midY * 0.9;
-        const yMax = midY - max * midY * 0.9;
-
-        if (x === startX) ctx.moveTo(x, yMax);
-        else {
-          ctx.lineTo(x, yMin);
-          ctx.lineTo(x, yMax);
-        }
-      }
-      ctx.stroke();
-    };
-
-    // --- Draw played portion behind progress ---
-    if (currentPixel > 0) drawSignal("#1FD5F9", 0, currentPixel);
-
-    // --- Draw unplayed portion ---
-    if (currentPixel < w) drawSignal(this.color, currentPixel, w);
-
-    // Center line
-    ctx.strokeStyle = this.color;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(0, midY);
-    ctx.lineTo(w, midY);
-    ctx.stroke();
-
-    // Progress indicator (optional thin line)
-    if (currentPixel >= 0 && currentPixel < w) {
-      ctx.strokeStyle = "#1FD5F9"; // you can make it darker or same as bg
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(currentPixel, 0);
-      ctx.lineTo(currentPixel, h);
-      ctx.stroke();
+    for (let i = startSample; i < endSample; i += step) {
+      visibleTime.push(this.time[i]);
+      visibleSamples.push(this.samples[i]);
     }
 
+    return { visibleTime, visibleSamples };
+  }
+
+  render() {
+    if (!this.samples || !this.samples.length) return;
+
+    const { visibleTime, visibleSamples } = this.getVisibleData();
+    const currentTime = this.currentTime;
+
+    // Create traces for played and unplayed portions
+    const playedTrace = {
+      x: [],
+      y: [],
+      type: "scatter",
+      mode: "lines",
+      line: {
+        color: "#1FD5F9",
+        width: 2,
+      },
+      name: "Played",
+      showlegend: false,
+    };
+
+    const unplayedTrace = {
+      x: [],
+      y: [],
+      type: "scatter",
+      mode: "lines",
+      line: {
+        color: this.color,
+        width: 2,
+      },
+      name: "Unplayed",
+      showlegend: false,
+    };
+
+    // Split data into played and unplayed portions
+    let isPlayingSection = true;
+    for (let i = 0; i < visibleTime.length; i++) {
+      if (visibleTime[i] <= currentTime) {
+        playedTrace.x.push(visibleTime[i]);
+        playedTrace.y.push(visibleSamples[i]);
+      } else {
+        unplayedTrace.x.push(visibleTime[i]);
+        unplayedTrace.y.push(visibleSamples[i]);
+      }
+    }
+
+    this.plotData = [playedTrace, unplayedTrace];
+
+    // Add progress line
+    if (
+      currentTime >= visibleTime[0] &&
+      currentTime <= visibleTime[visibleTime.length - 1]
+    ) {
+      const progressTrace = {
+        x: [currentTime, currentTime],
+        y: [Math.min(...visibleSamples), Math.max(...visibleSamples)],
+        type: "scatter",
+        mode: "lines",
+        line: {
+          color: "#1FD5F9",
+          width: 2,
+          dash: "dash",
+        },
+        name: "Progress",
+        showlegend: false,
+      };
+      this.plotData.push(progressTrace);
+    }
+
+    this.plotLayout = {
+      title: false,
+      xaxis: {
+        showgrid: false,
+        zeroline: false,
+        showline: true,
+        linewidth: 1,
+        mirror: true,
+      },
+      yaxis: {
+        showgrid: false,
+        zeroline: false,
+        showline: true,
+        linewidth: 1,
+        mirror: true,
+      },
+      margin: { l: 30, r: 10, t: 0, b: 20 },
+      paper_bgcolor: "rgba(0,0,0,0)",
+      plot_bgcolor: "rgba(0,0,0,0)",
+      hovermode: false,
+      dragmode: "pan",
+    };
+
+    this.plotConfig = {
+      displayModeBar: false,
+      staticPlot: false,
+      responsive: true,
+      scrollZoom: true, // ❌ turn off plotly zoom
+    };
+
+    // Render plot
+    Plotly.react(
+      this.plotContainer,
+      this.plotData,
+      this.plotLayout,
+      this.plotConfig
+    );
+
     this.updateDuration();
+  }
+
+  // Clean up method to remove event listeners and plots
+  destroy() {
+    if (this.audio) {
+      this.audio.removeEventListener(
+        "timeupdate",
+        this._onAudioTimeUpdate.bind(this)
+      );
+      this.audio.pause();
+    }
+    Plotly.purge(this.plotContainer);
   }
 }
