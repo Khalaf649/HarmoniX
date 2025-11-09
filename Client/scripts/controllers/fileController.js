@@ -44,9 +44,9 @@ export async function handleJsonUpload(event) {
         containerId: "input-signal-viewer",
         title: "Input Signal",
         samples: input.amplitudes,
-        time: input.time,
+        sampleRate: input.sampleRate,
         audioSrc: appState.renderedJson.original_signal,
-        color: "var(--color-waveform-input)",
+        color: "#666",
       });
 
       // 2️⃣ Load output signal for current mode
@@ -57,9 +57,9 @@ export async function handleJsonUpload(event) {
         containerId: "output-signal-viewer",
         title: "Output Signal",
         samples: output.amplitudes,
-        time: output.time,
+        sampleRate: input.sampleRate,
         audioSrc: outputPath,
-        color: "var(--color-waveform-output)",
+        color: "#666",
       });
 
       // // 4️⃣ Show main app

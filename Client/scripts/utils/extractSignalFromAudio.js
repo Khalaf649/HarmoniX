@@ -1,34 +1,18 @@
 export async function extractSignalFromAudio(relativePath) {
-  // Fetch audio file
   const response = await fetch(relativePath);
   if (!response.ok) throw new Error("Failed to fetch audio file");
 
   const arrayBuffer = await response.arrayBuffer();
-
-  // Create AudioContext
   const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
 
-  // Decode audio safely using Promise wrapper
-  const audioBuffer = await new Promise((resolve, reject) => {
-    audioContext.decodeAudioData(
-      arrayBuffer,
-      (buffer) => resolve(buffer),
-      (err) => reject(err)
-    );
-  });
-
-  // Take first channel
   const channelData = audioBuffer.getChannelData(0);
   const sampleRate = audioBuffer.sampleRate;
 
-  // Create time array
-  const timeArray = new Float32Array(channelData.length);
-  for (let i = 0; i < channelData.length; i++) {
-    timeArray[i] = i / sampleRate;
-  }
+  // Normalize amplitude
+  // Find max amplitude safely without spread
+  const maxAmp = channelData.reduce((max, v) => Math.max(max, Math.abs(v)), 0);
+  const normalized = channelData.map((v) => v / maxAmp);
 
-  return {
-    time: Array.from(timeArray),
-    amplitudes: Array.from(channelData),
-  };
+  return { amplitudes: normalized, sampleRate };
 }

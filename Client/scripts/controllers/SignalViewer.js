@@ -2,15 +2,35 @@ export class SignalViewer {
   constructor({
     containerId,
     samples = [],
-    time = [],
+    sampleRate,
     audioSrc = null,
-    color = "lime",
+    color,
+    title,
   }) {
     this.container = document.getElementById(containerId);
     if (!this.container) throw new Error(`Container ${containerId} not found`);
 
+    this.sampleRate = sampleRate;
+    this.samples = samples;
+    this.time = this.samples.map((_, i) => i / sampleRate);
+    this.audio = audioSrc ? new Audio(audioSrc) : null;
+    this.color = color;
+    this.title = title;
+
+    this.isPlaying = false;
+    this.isMuted = false;
+    this.speed = 1;
+    this.zoom = 1;
+    this.offset = 0;
+    this.currentTime = 0;
+
+    // Canvas setup
     this.canvas = this.container.querySelector(".signal-viewer-canvas");
+    if (!this.canvas)
+      throw new Error("Canvas element not found inside container");
     this.ctx = this.canvas.getContext("2d");
+    this.canvas.width = 800;
+    this.canvas.height = 200;
 
     // Child controls
     this.playBtn = this.container.querySelector(".play-btn");
@@ -22,27 +42,42 @@ export class SignalViewer {
     this.zoomInBtn = this.container.querySelector(".zoom-in");
     this.zoomOutBtn = this.container.querySelector(".zoom-out");
     this.zoomLabel = this.container.querySelector(".zoom-label");
+    this.signalTitle = this.container.querySelector(".signal-viewer-title");
+    this.signalDuration = this.container.querySelector(
+      ".signal-viewer-duration"
+    );
 
-    // Signal & audio
-    this.samples = samples;
-    this.time = time;
-    this.audio = audioSrc ? new Audio(audioSrc) : null;
-    this.color = color;
+    if (this.signalTitle) this.signalTitle.textContent = this.title;
 
-    this.isPlaying = false;
-    this.isMuted = false;
-    this.speed = 1;
-    this.zoom = 1;
-    this.offset = 0;
-
-    this.updateCanvasSize();
     this.bindControls();
+    this.render();
+
+    if (this.audio) {
+      this.audio.addEventListener(
+        "timeupdate",
+        this._onAudioTimeUpdate.bind(this)
+      );
+    }
+  }
+
+  _onAudioTimeUpdate() {
+    this.currentTime = this.audio.currentTime;
     this.render();
   }
 
-  updateCanvasSize() {
-    this.canvas.width = this.canvas.clientWidth;
-    this.canvas.height = this.canvas.clientHeight;
+  updateDuration() {
+    if (!this.signalDuration) return;
+
+    const totalSeconds = this.samples.length / this.sampleRate;
+    const formatTime = (seconds) => {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      return `${m}:${s.toString().padStart(2, "0")}`;
+    };
+
+    this.signalDuration.textContent = `${formatTime(
+      this.currentTime
+    )} / ${formatTime(totalSeconds)}`;
   }
 
   bindControls() {
@@ -60,17 +95,22 @@ export class SignalViewer {
   togglePlayPause() {
     if (!this.audio) return;
     if (this.isPlaying) this.audio.pause();
-    else (this.audio.playbackRate = this.speed), this.audio.play();
+    else {
+      this.audio.playbackRate = this.speed;
+      this.audio.play();
+    }
     this.isPlaying = !this.isPlaying;
-    this.playBtn.textContent = this.isPlaying ? "⏸" : "▶";
+    if (this.playBtn) this.playBtn.textContent = this.isPlaying ? "⏸" : "▶";
   }
 
   stop() {
     if (!this.audio) return;
     this.audio.pause();
     this.audio.currentTime = 0;
+    this.currentTime = 0;
     this.isPlaying = false;
-    this.playBtn.textContent = "▶";
+    if (this.playBtn) this.playBtn.textContent = "▶";
+    this.render();
   }
 
   reset() {
@@ -84,15 +124,18 @@ export class SignalViewer {
     if (!this.audio) return;
     this.audio.muted = !this.audio.muted;
     this.isMuted = this.audio.muted;
-    this.muteBtn.textContent = this.isMuted ? "🔇" : "🔊";
+    if (this.muteBtn) this.muteBtn.textContent = this.isMuted ? "🔇" : "🔊";
   }
 
   zoomIn() {
     this.zoom = Math.min(this.zoom * 1.5, 10);
+    if (this.zoomLabel) this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
     this.render();
   }
+
   zoomOut() {
     this.zoom = Math.max(this.zoom / 1.5, 0.5);
+    if (this.zoomLabel) this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
     this.render();
   }
 
@@ -103,32 +146,101 @@ export class SignalViewer {
       this.speedLabel.textContent = `Speed: ${value.toFixed(2)}x`;
   }
 
-  updateData(samples, time, audioSrc = null) {
+  updateData(samples, time = null, audioSrc = null) {
     this.samples = samples;
-    this.time = time;
-    if (audioSrc) this.audio = new Audio(audioSrc);
+    this.time = time || this.samples.map((_, i) => i / this.sampleRate);
+    this.currentTime = 0;
+
+    if (audioSrc) {
+      if (this.audio)
+        this.audio.removeEventListener(
+          "timeupdate",
+          this._onAudioTimeUpdate.bind(this)
+        );
+      this.audio = new Audio(audioSrc);
+      this.audio.addEventListener(
+        "timeupdate",
+        this._onAudioTimeUpdate.bind(this)
+      );
+    }
+
     this.render();
   }
 
   render() {
-    if (!this.samples || !this.time) return;
+    if (!this.samples || !this.samples.length) return;
     const ctx = this.ctx,
       w = this.canvas.width,
       h = this.canvas.height;
+
     ctx.clearRect(0, 0, w, h);
+
+    const midY = h / 2;
+    const samplesPerPixel = Math.max(
+      1,
+      Math.floor(this.samples.length / (w * this.zoom))
+    );
+    const startSample = Math.floor(this.offset * this.samples.length);
+    const currentSample = Math.floor(this.currentTime * this.sampleRate);
+    const currentPixel = Math.floor(
+      (currentSample - startSample) / samplesPerPixel
+    );
+
+    const drawSignal = (color, startX, endX) => {
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+      for (let x = startX; x < endX && x < w; x++) {
+        const sampleIdx = startSample + x * samplesPerPixel;
+        if (sampleIdx >= this.samples.length) break;
+
+        let min = Infinity,
+          max = -Infinity;
+        for (
+          let i = 0;
+          i < samplesPerPixel && sampleIdx + i < this.samples.length;
+          i++
+        ) {
+          const val = this.samples[sampleIdx + i];
+          min = Math.min(min, val);
+          max = Math.max(max, val);
+        }
+
+        const yMin = midY - min * midY * 0.9;
+        const yMax = midY - max * midY * 0.9;
+
+        if (x === startX) ctx.moveTo(x, yMax);
+        else {
+          ctx.lineTo(x, yMin);
+          ctx.lineTo(x, yMax);
+        }
+      }
+      ctx.stroke();
+    };
+
+    // --- Draw played portion behind progress ---
+    if (currentPixel > 0) drawSignal("#1FD5F9", 0, currentPixel);
+
+    // --- Draw unplayed portion ---
+    if (currentPixel < w) drawSignal(this.color, currentPixel, w);
+
+    // Center line
     ctx.strokeStyle = this.color;
+    ctx.lineWidth = 1;
     ctx.beginPath();
-
-    const zoomedLength = Math.floor(this.samples.length / this.zoom);
-    const startIdx = Math.floor(this.offset * this.samples.length);
-
-    for (let i = 0; i < zoomedLength; i++) {
-      const idx = startIdx + i;
-      if (idx >= this.samples.length) break;
-      const x = (i / zoomedLength) * w;
-      const y = h / 2 - (this.samples[idx] * h) / 2;
-      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
-    }
+    ctx.moveTo(0, midY);
+    ctx.lineTo(w, midY);
     ctx.stroke();
+
+    // Progress indicator (optional thin line)
+    if (currentPixel >= 0 && currentPixel < w) {
+      ctx.strokeStyle = "#1FD5F9"; // you can make it darker or same as bg
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(currentPixel, 0);
+      ctx.lineTo(currentPixel, h);
+      ctx.stroke();
+    }
+
+    this.updateDuration();
   }
 }
