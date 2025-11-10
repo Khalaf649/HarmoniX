@@ -2,33 +2,35 @@
 import { appState } from "../appState.js";
 import { extractSignalFromAudio } from "../utils/extractSignalFromAudio.js";
 import { calcFFT } from "../utils/calcFFT.js";
-import { applyEQ } from "../utils/applyEQ.js";
 import { SignalViewer } from "./SignalViewer.js";
 import { FourierController } from "./FourierController.js";
 
-/**
- * EqualizerPanel – simplified + fixed
- * - Sliders with colored track (left = #1fd5f9, right = gray)
- * - Reset + Save work
- * - No live recomputation, no #addBand
- */
 export class EqualizerPanel {
   constructor(panelId = "control-panel") {
     return (async () => {
       this.panel = document.getElementById(panelId);
       if (!this.panel) throw new Error(`#${panelId} not found`);
 
-      // === Query DOM elements ===
+      // === Cache DOM elements ===
       this.modeSelect = this.panel.querySelector("#modeSelect");
       this.controlsContainer = this.panel.querySelector(".equalizer-controls");
       this.resetBtn = this.panel.querySelector("#btnReset");
       this.saveBtn = this.panel.querySelector("#btnSave");
+      this.addSliderBtn = this.panel.querySelector("#open-dialog");
+      this.dialog = this.panel.querySelector("#dialog-overlay");
+      this.closeDialogBtn = this.panel.querySelector("#close-dialog");
+      this.addSliderForm = this.panel.querySelector("#add-slider-form");
+
+      this.minFreqInput = this.panel.querySelector("#min-freq");
+      this.minFreqValue = this.panel.querySelector("#min-freq-value");
+      this.maxFreqInput = this.panel.querySelector("#max-freq");
+      this.maxFreqValue = this.panel.querySelector("#max-freq-value");
+      this.sliderNameInput = this.panel.querySelector("#slider-name");
 
       if (!this.controlsContainer || !this.modeSelect)
         throw new Error("Required UI elements not found");
 
       this._attachEvents();
-
       await this._initViewers();
       this.renderSliders();
 
@@ -43,8 +45,65 @@ export class EqualizerPanel {
     this.modeSelect.addEventListener("change", () =>
       this.setMode(this.modeSelect.value)
     );
+
     this.resetBtn.addEventListener("click", () => this.reset());
     this.saveBtn.addEventListener("click", () => this.downloadJson());
+
+    this.addSliderBtn.addEventListener("click", () =>
+      this.openAddSliderDialog()
+    );
+    this.closeDialogBtn.addEventListener("click", () =>
+      this.closeAddSliderDialog()
+    );
+
+    this.dialog.addEventListener("click", (e) => {
+      if (e.target === this.dialog) this.closeAddSliderDialog();
+    });
+
+    this.addSliderForm.addEventListener("submit", (e) => {
+      e.preventDefault();
+      this.handleAddSlider();
+    });
+
+    this.minFreqInput.addEventListener("input", () => {
+      this.minFreqValue.textContent = `${this.minFreqInput.value} Hz`;
+    });
+
+    this.maxFreqInput.addEventListener("input", () => {
+      this.maxFreqValue.textContent = `${this.maxFreqInput.value} Hz`;
+    });
+  }
+
+  openAddSliderDialog() {
+    this.dialog.classList.remove("hidden");
+  }
+
+  closeAddSliderDialog() {
+    this.dialog.classList.add("hidden");
+  }
+
+  handleAddSlider() {
+    const name = this.sliderNameInput.value || "Untitled";
+    const min = parseFloat(this.minFreqInput.value);
+    const max = parseFloat(this.maxFreqInput.value);
+    if (min > max) {
+      alert("Please enter a valid band");
+      return;
+    }
+
+    const modeData = appState.renderedJson[appState.mode];
+    if (!modeData.sliders) modeData.sliders = [];
+
+    const newSlider = {
+      name,
+      low: min,
+      high: max,
+      value: 1, // default
+    };
+
+    modeData.sliders.push(newSlider);
+    this.renderSliders();
+    this.closeAddSliderDialog();
   }
 
   // =================================================================
@@ -79,9 +138,7 @@ export class EqualizerPanel {
 
   async _loadPrecomputedOutput() {
     const path = appState.renderedJson[appState.mode]?.output_signal;
-
     const out = await extractSignalFromAudio(path);
-
     const outFFT = await calcFFT(out.amplitudes, out.sampleRate);
 
     if (!appState.outputViewer) {
@@ -110,92 +167,79 @@ export class EqualizerPanel {
   }
 
   // =================================================================
-  // 3. Render sliders (with colored track)
+  // 3. Render sliders & sync
   // =================================================================
   renderSliders() {
-    console.log(appState.mode);
     const modeData = appState.renderedJson[appState.mode];
     const sliders = modeData?.sliders || [];
 
-    if (!sliders.length) {
-      this.controlsContainer.innerHTML =
-        "<p class='text-gray-500'>No bands defined</p>";
-      return;
-    }
-
-    this.controlsContainer.innerHTML = "";
+    this.controlsContainer.innerHTML = sliders.length
+      ? ""
+      : "<p class='text-gray-500'>No bands defined</p>";
 
     sliders.forEach((band, i) => {
-      const sliderHTML = `
-        <div class="frequency-slider" data-index="${i}">
-          <div class="frequency-slider-header">
-            <label class="frequency-slider-label">
-              ${band.name} (${band.low}-${band.high})
-            </label>
-            <div class="flex items-center gap-2">
-              <span class="frequency-slider-value">${band.value}x</span>
-              <button class="btn frequency-slider-delete">
-                <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                  <path d="M6 6 L18 18 M6 18 L18 6" stroke="currentColor" stroke-width="2"/>
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div class="frequency-slider-range">${band.low} - ${band.high}</div>
-          <div class="slider-container w-full relative">
-            <input
-              type="range"
-              min="0"
-              max="2"
-              step="0.1"
-              value="${band.value}"
-              class="slider-input w-full"
-            />
-          </div>
-          <div class="frequency-slider-scale">
-            <span>0x</span>
-            <span>1x</span>
-            <span>2x</span>
+      const wrapper = document.createElement("div");
+      wrapper.classList.add("frequency-slider");
+      wrapper.dataset.index = i;
+
+      wrapper.innerHTML = `
+        <div class="frequency-slider-header">
+          <label class="frequency-slider-label">${band.name} (${band.low}-${
+        band.high
+      })</label>
+          <div class="flex items-center gap-2">
+            <span class="frequency-slider-value">${band.value.toFixed(
+              2
+            )}x</span>
+            <button class="btn frequency-slider-delete">
+              <svg class="icon-sm" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+                <path d="M6 6 L18 18 M6 18 L18 6" stroke="currentColor" stroke-width="2"/>
+              </svg>
+            </button>
           </div>
         </div>
+        <div class="slider-container w-full relative">
+          <input type="range" min="0" max="2" step="0.1" value="${
+            band.value
+          }" class="slider-input w-full"/>
+        </div>
+        <div class="frequency-slider-scale"><span>0x</span><span>1x</span><span>2x</span></div>
       `;
 
-      const wrapper = document.createElement("div");
-      wrapper.innerHTML = sliderHTML;
-      const sliderEl = wrapper.firstElementChild;
+      const input = wrapper.querySelector(".slider-input");
+      const valueSpan = wrapper.querySelector(".frequency-slider-value");
+      const deleteBtn = wrapper.querySelector(".frequency-slider-delete");
 
-      const input = sliderEl.querySelector(".slider-input");
-      const valueSpan = sliderEl.querySelector(".frequency-slider-value");
-      const deleteBtn = sliderEl.querySelector(".frequency-slider-delete");
-
-      // Colorize the slider track
       this._styleSliderTrack(input);
 
       input.addEventListener("input", (e) => {
         const val = parseFloat(e.target.value);
         valueSpan.textContent = `${val.toFixed(2)}x`;
         this._styleSliderTrack(input);
-        const modeData = appState.renderedJson[appState.mode];
-        if (modeData?.sliders?.[i]) {
-          modeData.sliders[i].value = val;
+
+        // sync to appState
+        modeData.sliders[i].value = val;
+
+        // call external function to update design
+        if (typeof this.onSliderChange === "function") {
+          this.onSliderChange(i, val);
         }
       });
 
       deleteBtn.addEventListener("click", () => this.removeBand(i));
 
-      this.controlsContainer.appendChild(sliderEl);
+      this.controlsContainer.appendChild(wrapper);
     });
   }
 
   // =================================================================
-  // 4. Style slider track
+  // 4. Slider styling
   // =================================================================
   _styleSliderTrack(input) {
     const value = parseFloat(input.value);
     const min = parseFloat(input.min);
     const max = parseFloat(input.max);
     const percent = ((value - min) / (max - min)) * 100;
-
     input.style.background = `linear-gradient(to right, #1fd5f9 0%, #1fd5f9 ${percent}%, #a0a0a0 ${percent}%, #a0a0a0 100%)`;
   }
 
@@ -209,22 +253,13 @@ export class EqualizerPanel {
     const app = document.getElementById("mainApp");
     const loading = document.getElementById("loadingSuspense");
 
-    // 1️⃣ Show loading spinner
     if (app) app.style.display = "none";
     if (loading) loading.style.display = "block";
 
-    // 2️⃣ Precompute output signal + FFT
     this._loadPrecomputedOutput()
-      .then(() => {
-        // 3️⃣ Render sliders after output is ready
-        this.renderSliders();
-      })
-      .catch((err) => {
-        console.error("Failed to load output signal:", err);
-      })
+      .then(() => this.renderSliders())
       .finally(() => {
-        // 4️⃣ Hide loading spinner and show main app
-        if (app) app.style.display = "grid"; // or your default layout
+        if (app) app.style.display = "grid";
         if (loading) loading.style.display = "none";
       });
   }
@@ -252,5 +287,12 @@ export class EqualizerPanel {
     a.download = "equalizer_project.json";
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // =================================================================
+  // 6. External sync hook
+  // =================================================================
+  setOnSliderChange(callback) {
+    this.onSliderChange = callback; // called as onSliderChange(index, value)
   }
 }
