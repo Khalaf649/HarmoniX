@@ -44,12 +44,10 @@ export class FourierController {
     this.render();
   }
 
-  /* -------------------------- Create Viewer DOM -------------------------- */
   _createViewerElement() {
     const parent = document.getElementById(this.parentId);
     if (!parent) throw new Error(`Parent container ${this.parentId} not found`);
 
-    // Avoid duplicate containers
     if (document.getElementById(this.containerId)) return;
 
     const wrapper = document.createElement("div");
@@ -59,19 +57,15 @@ export class FourierController {
       <div class="fft-viewer-header">
         <h3 class="fft-viewer-title">${this.title}</h3>
       </div>
-
       <div class="fft-plot-container" style="width: 100%; height: 300px;"></div>
-
       <div class="playback-controls">
         <div class="playback-controls-group">
           <button class="btn btn-secondary btn-sm reset-btn">↺</button>
         </div>
-
         <div class="playback-controls-slider">
           <span class="playback-controls-label pan-label">Pos</span>
           <input type="range" min="0" max="1" step="0.001" value="0" class="pan-slider slider-input">
         </div>
-
         <div class="playback-controls-zoom">
           <button class="btn btn-secondary btn-sm zoom-out">-</button>
           <span class="playback-controls-zoom-label zoom-label">1x</span>
@@ -82,10 +76,8 @@ export class FourierController {
     parent.appendChild(wrapper);
   }
 
-  /* -------------------------- Slider Fill Styling -------------------------- */
   _initSliders() {
-    const sliders = [this.panSlider, this.speedSlider].filter(Boolean);
-    sliders.forEach((slider) => {
+    [this.panSlider, this.speedSlider].filter(Boolean).forEach((slider) => {
       this._styleSliderTrack(slider);
       slider.addEventListener("input", () => this._styleSliderTrack(slider));
     });
@@ -99,7 +91,6 @@ export class FourierController {
     const percent = ((val - min) / (max - min)) * 100;
     slider.style.background = `linear-gradient(to right, #1FD5F9 0%, #1FD5F9 ${percent}%, #a0a0a0 ${percent}%, #a0a0a0 100%)`;
   }
-  /* ----------------------------------------------------------------------- */
 
   bindControls() {
     this.resetBtn?.addEventListener("click", () => this.reset());
@@ -150,7 +141,8 @@ export class FourierController {
   }
 
   getVisibleData() {
-    if (!this.frequencies.length) return { visibleFreq: [], visibleMag: [] };
+    if (!this.frequencies.length || !this.magnitudes.length)
+      return { visibleFreq: [], visibleMag: [] };
 
     const totalPoints = this.frequencies.length;
     const visibleCount = Math.floor(totalPoints / this.zoom);
@@ -172,7 +164,10 @@ export class FourierController {
 
   render() {
     const { visibleFreq, visibleMag } = this.getVisibleData();
-    if (!visibleFreq.length) return;
+    if (!visibleFreq.length) {
+      if (this.plotContainer) Plotly.purge(this.plotContainer);
+      return;
+    }
 
     const trace = {
       x: visibleFreq,
@@ -216,12 +211,22 @@ export class FourierController {
     Plotly.react(this.plotContainer, [trace], layout, config);
   }
 
-  updateData(frequencies, magnitudes) {
-    this.frequencies = frequencies;
-    this.magnitudes = magnitudes;
+  updateData(frequencies = [], magnitudes = []) {
+    // Update data safely
+    this.frequencies = Array.isArray(frequencies) ? frequencies : [];
+    this.magnitudes = Array.isArray(magnitudes) ? magnitudes : [];
     this.offset = 0;
     this.zoom = 1;
     this.speed = 1;
+
+    if (this.panSlider) this.panSlider.value = 0;
+    if (this.speedSlider) this.speedSlider.value = 1;
+    if (this.zoomLabel) this.zoomLabel.textContent = "1x";
+    if (this.speedLabel) this.speedLabel.textContent = "Speed: 1x";
+
+    this._styleSliderTrack(this.panSlider);
+    this._styleSliderTrack(this.speedSlider);
+
     this.render();
   }
 }

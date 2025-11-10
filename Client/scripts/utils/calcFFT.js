@@ -1,5 +1,6 @@
 // utils/calcFFT.js
 export async function calcFFT(signal, fs) {
+  if (!fs || !signal) return { frequencies: [], magnitudes: [] };
   try {
     const response = await fetch("http://localhost:8080/calculatefft", {
       method: "POST",

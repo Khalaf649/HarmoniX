@@ -2,27 +2,26 @@ export class SignalViewer {
   constructor({
     containerId,
     samples = [],
-    sampleRate,
+    sampleRate = 44100,
     audioSrc = null,
     color = "#999",
     title = "Signal",
-    parentId = "time-domain", // default parent container
+    parentId = "time-domain",
   }) {
     this.containerId = containerId;
     this.parentId = parentId;
     this.color = color;
     this.title = title;
     this.sampleRate = sampleRate;
-    this.samples = samples;
-    this.time = this.samples.map((_, i) => i / sampleRate);
-    this.audio = audioSrc ? new Audio(audioSrc) : null;
+    this.samples = samples || [];
+    this.audio = audioSrc && this.samples.length ? new Audio(audioSrc) : null;
 
-    // ✅ Create container first (before querying it)
+    this.time = this.samples.map((_, i) => i / this.sampleRate);
+
     this._createViewerElement();
     this.container = document.getElementById(containerId);
     if (!this.container) throw new Error(`Container ${containerId} not found`);
 
-    // ✅ Audio event handler binding (prevents leaks)
     this._boundOnAudioTimeUpdate = this._onAudioTimeUpdate.bind(this);
 
     this.isPlaying = false;
@@ -34,10 +33,9 @@ export class SignalViewer {
 
     // Plot container
     this.plotContainer = this.container.querySelector(".signal-plot-container");
-    if (!this.plotContainer)
-      throw new Error("Plot container element not found inside container");
+    if (!this.plotContainer) throw new Error("Plot container not found");
 
-    // Child controls
+    // Controls
     this.playBtn = this.container.querySelector(".play-btn");
     this.stopBtn = this.container.querySelector(".stop-btn");
     this.resetBtn = this.container.querySelector(".reset-btn");
@@ -67,22 +65,22 @@ export class SignalViewer {
     this._initSliders();
     this.render();
 
-    // ✅ Attach audio listeners
-    if (this.audio) {
-      this.audio.addEventListener("timeupdate", this._boundOnAudioTimeUpdate);
-      this.audio.addEventListener("ended", () => {
-        this.isPlaying = false;
-        if (this.playBtn) this.playBtn.textContent = "▶";
-      });
-    }
+    // Audio listeners
+    if (this.audio) this._attachAudioListeners();
+  }
+
+  _attachAudioListeners() {
+    this.audio.addEventListener("timeupdate", this._boundOnAudioTimeUpdate);
+    this.audio.addEventListener("ended", () => {
+      this.isPlaying = false;
+      if (this.playBtn) this.playBtn.textContent = "▶";
+    });
   }
 
   /* -------------------------- Create Viewer DOM -------------------------- */
   _createViewerElement() {
     const parent = document.getElementById(this.parentId);
     if (!parent) throw new Error(`Parent container ${this.parentId} not found`);
-
-    // Avoid duplicates
     if (document.getElementById(this.containerId)) return;
 
     const wrapper = document.createElement("div");
@@ -93,9 +91,7 @@ export class SignalViewer {
         <h3 class="signal-viewer-title"></h3>
         <div class="signal-viewer-duration">No Signal</div>
       </div>
-
       <div class="signal-plot-container" style="width: 100%; height: 300px;"></div>
-
       <div class="playback-controls">
         <div class="playback-controls-group">
           <button class="btn btn-sm btn-default play-btn">▶</button>
@@ -103,14 +99,12 @@ export class SignalViewer {
           <button class="btn btn-secondary btn-sm reset-btn">↺</button>
           <button class="btn btn-secondary btn-sm mute-toggle-btn">🔊</button>
         </div>
-
         <div class="playback-controls-slider">
           <span class="playback-controls-label speed-label">Speed: 1x</span>
           <input type="range" min="0.25" max="2" step="0.25" value="1" class="speed-slider slider-input">
           <span class="playback-controls-label pan-label">Pos</span>
           <input type="range" min="0" max="1" step="0.001" value="0" class="pan-slider slider-input">
         </div>
-
         <div class="playback-controls-zoom">
           <button class="btn btn-secondary btn-sm zoom-out">-</button>
           <span class="playback-controls-zoom-label zoom-label">1x</span>
@@ -118,14 +112,12 @@ export class SignalViewer {
         </div>
       </div>
     `;
-
     parent.appendChild(wrapper);
   }
 
-  /* -------------------------- Slider Fill Styling -------------------------- */
+  /* -------------------------- Slider Styling -------------------------- */
   _initSliders() {
-    const sliders = [this.speedSlider, this.panSlider].filter(Boolean);
-    sliders.forEach((slider) => {
+    [this.speedSlider, this.panSlider].filter(Boolean).forEach((slider) => {
       this._styleSliderTrack(slider);
       slider.addEventListener("input", () => this._styleSliderTrack(slider));
     });
@@ -136,69 +128,54 @@ export class SignalViewer {
     const min = parseFloat(slider.min || 0);
     const max = parseFloat(slider.max || 1);
     const val = parseFloat(slider.value || 0);
-    const range = max - min;
-    const percent = range > 0 ? ((val - min) / range) * 100 : 0;
+    const percent = max - min > 0 ? ((val - min) / (max - min)) * 100 : 0;
     slider.style.background = `linear-gradient(to right, #1fd5f9 0%, #1fd5f9 ${percent}%, #a0a0a0 ${percent}%, #a0a0a0 100%)`;
   }
-  /* ----------------------------------------------------------------------- */
 
+  /* -------------------------- Update Samples -------------------------- */
+  updateSamples(samples, sampleRate = this.sampleRate, audioSrc = null) {
+    this.samples = samples || [];
+    this.sampleRate = sampleRate;
+    this.time = this.samples.map((_, i) => i / this.sampleRate);
+    this.currentTime = 0;
+    this.offset = 0;
+    this.zoom = 1;
+
+    // If no samples, clear audio
+    if (!this.samples.length) audioSrc = null;
+
+    // Destroy old audio
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.removeEventListener(
+        "timeupdate",
+        this._boundOnAudioTimeUpdate
+      );
+      this.audio = null;
+      this.isPlaying = false;
+      if (this.playBtn) this.playBtn.textContent = "▶";
+    }
+
+    if (audioSrc) {
+      this.audio = new Audio(audioSrc);
+      this._attachAudioListeners();
+      this.isMuted = false;
+      if (this.muteBtn) this.muteBtn.textContent = "🔊";
+    }
+
+    this.render();
+  }
+
+  /* -------------------------- Audio / Playback -------------------------- */
   _onAudioTimeUpdate() {
     this.currentTime = this.audio.currentTime;
     this.render();
   }
 
-  clampOffset() {
-    const maxOffset = Math.max(0, 1 - 1 / this.zoom);
-    this.offset = Math.min(Math.max(this.offset, 0), maxOffset);
-
-    if (this.panSlider) {
-      this.panSlider.value = this.offset;
-      this._styleSliderTrack(this.panSlider);
-    }
-  }
-
-  updateDuration() {
-    if (!this.signalDuration) return;
-
-    const totalSeconds = this.samples.length / this.sampleRate;
-    const formatTime = (seconds) => {
-      const m = Math.floor(seconds / 60);
-      const s = Math.floor(seconds % 60);
-      return `${m}:${s.toString().padStart(2, "0")}`;
-    };
-
-    this.signalDuration.textContent = `${formatTime(
-      this.currentTime
-    )} / ${formatTime(totalSeconds)}`;
-  }
-
-  bindControls() {
-    this.playBtn?.addEventListener("click", () => this.togglePlayPause());
-    this.stopBtn?.addEventListener("click", () => this.stop());
-    this.resetBtn?.addEventListener("click", () => this.reset());
-    this.muteBtn?.addEventListener("click", () => this.toggleMute());
-    this.zoomInBtn?.addEventListener("click", () => this.zoomIn());
-    this.zoomOutBtn?.addEventListener("click", () => this.zoomOut());
-
-    this.speedSlider?.addEventListener("input", (e) => {
-      this.setSpeed(parseFloat(e.target.value));
-      this._styleSliderTrack(this.speedSlider);
-    });
-
-    this.panSlider?.addEventListener("input", (e) => {
-      this.offset = parseFloat(e.target.value);
-      this.render();
-      this._styleSliderTrack(this.panSlider);
-    });
-  }
-
   togglePlayPause() {
     if (!this.audio) return;
     if (this.isPlaying) this.audio.pause();
-    else {
-      this.audio.playbackRate = this.speed;
-      this.audio.play();
-    }
+    else (this.audio.playbackRate = this.speed), this.audio.play();
     this.isPlaying = !this.isPlaying;
     if (this.playBtn) this.playBtn.textContent = this.isPlaying ? "⏸" : "▶";
   }
@@ -229,14 +206,14 @@ export class SignalViewer {
 
   zoomIn() {
     this.zoom = Math.min(this.zoom * 1.5, 4000);
-    this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
+    if (this.zoomLabel) this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
     this.clampOffset();
     this.render();
   }
 
   zoomOut() {
     this.zoom = Math.max(this.zoom / 1.5, 1);
-    this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
+    if (this.zoomLabel) this.zoomLabel.textContent = `${this.zoom.toFixed(2)}x`;
     this.clampOffset();
     this.render();
   }
@@ -248,50 +225,74 @@ export class SignalViewer {
       this.speedLabel.textContent = `Speed: ${value.toFixed(2)}x`;
   }
 
-  updateData(samples, audioSrc = null) {
-    this.samples = samples;
-    this.time = this.samples.map((_, i) => i / this.sampleRate);
-    this.currentTime = 0;
-
-    if (audioSrc) {
-      if (this.audio)
-        this.audio.removeEventListener(
-          "timeupdate",
-          this._boundOnAudioTimeUpdate
-        );
-      this.audio = new Audio(audioSrc);
-      this.audio.addEventListener("timeupdate", this._boundOnAudioTimeUpdate);
+  clampOffset() {
+    const maxOffset = Math.max(0, 1 - 1 / this.zoom);
+    this.offset = Math.min(Math.max(this.offset, 0), maxOffset);
+    if (this.panSlider) {
+      this.panSlider.value = this.offset;
+      this._styleSliderTrack(this.panSlider);
     }
+  }
 
-    this.render();
+  bindControls() {
+    this.playBtn?.addEventListener("click", () => this.togglePlayPause());
+    this.stopBtn?.addEventListener("click", () => this.stop());
+    this.resetBtn?.addEventListener("click", () => this.reset());
+    this.muteBtn?.addEventListener("click", () => this.toggleMute());
+    this.zoomInBtn?.addEventListener("click", () => this.zoomIn());
+    this.zoomOutBtn?.addEventListener("click", () => this.zoomOut());
+
+    this.speedSlider?.addEventListener("input", (e) => {
+      this.setSpeed(parseFloat(e.target.value));
+      this._styleSliderTrack(this.speedSlider);
+    });
+
+    this.panSlider?.addEventListener("input", (e) => {
+      this.offset = parseFloat(e.target.value);
+      this.render();
+      this._styleSliderTrack(this.panSlider);
+    });
+  }
+
+  updateDuration() {
+    if (!this.signalDuration) return;
+    const totalSeconds = this.samples.length / this.sampleRate;
+    const formatTime = (s) =>
+      `${Math.floor(s / 60)}:${Math.floor(s % 60)
+        .toString()
+        .padStart(2, "0")}`;
+    this.signalDuration.textContent = `${formatTime(
+      this.currentTime
+    )} / ${formatTime(totalSeconds)}`;
   }
 
   getVisibleData() {
     if (!this.samples.length) return { visibleTime: [], visibleSamples: [] };
-
     const totalSamples = this.samples.length;
     const visibleSamplesCount = Math.floor(totalSamples / this.zoom);
-    const startSample = Math.floor(
+    const start = Math.floor(
       this.offset * (totalSamples - visibleSamplesCount)
     );
-    const endSample = Math.min(startSample + visibleSamplesCount, totalSamples);
+    const end = Math.min(start + visibleSamplesCount, totalSamples);
 
     const maxPoints = 2000;
-    const step = Math.ceil((endSample - startSample) / maxPoints);
+    const step = Math.ceil((end - start) / maxPoints);
 
-    const visibleTime = [];
-    const visibleSamples = [];
-
-    for (let i = startSample; i < endSample; i += step) {
+    const visibleTime = [],
+      visibleSamples = [];
+    for (let i = start; i < end; i += step) {
       visibleTime.push(this.time[i]);
       visibleSamples.push(this.samples[i]);
     }
-
     return { visibleTime, visibleSamples };
   }
 
   render() {
-    if (!this.samples || !this.samples.length) return;
+    if (!this.samples.length) {
+      if (this.plotContainer) Plotly.purge(this.plotContainer);
+      if (this.signalDuration) this.signalDuration.textContent = "No Signal";
+      return;
+    }
 
     const { visibleTime, visibleSamples } = this.getVisibleData();
     const currentTime = this.currentTime;
@@ -304,7 +305,6 @@ export class SignalViewer {
       line: { color: "#1FD5F9", width: 2 },
       showlegend: false,
     };
-
     const unplayedTrace = {
       x: [],
       y: [],
@@ -330,15 +330,14 @@ export class SignalViewer {
       currentTime >= visibleTime[0] &&
       currentTime <= visibleTime[visibleTime.length - 1]
     ) {
-      const progressTrace = {
+      this.plotData.push({
         x: [currentTime, currentTime],
         y: [Math.min(...visibleSamples), Math.max(...visibleSamples)],
         type: "scatter",
         mode: "lines",
         line: { color: "#1FD5F9", width: 2, dash: "dash" },
         showlegend: false,
-      };
-      this.plotData.push(progressTrace);
+      });
     }
 
     this.plotLayout = {
@@ -357,7 +356,6 @@ export class SignalViewer {
       this.plotLayout,
       this.plotConfig
     );
-
     this.updateDuration();
   }
 }

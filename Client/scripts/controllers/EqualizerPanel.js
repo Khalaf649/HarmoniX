@@ -79,7 +79,6 @@ export class EqualizerPanel {
 
   async _loadPrecomputedOutput() {
     const path = appState.renderedJson[appState.mode]?.output_signal;
-    if (!path) return;
 
     const out = await extractSignalFromAudio(path);
     const outFFT = await calcFFT(out.amplitudes, out.sampleRate);
@@ -94,7 +93,7 @@ export class EqualizerPanel {
         color: "#666",
       });
     } else {
-      appState.outputViewer.updateSamples(out.amplitudes);
+      appState.outputViewer.updateSamples(out.amplitudes, out.sampleRate, path);
     }
 
     if (!appState.outputFFT) {
@@ -105,7 +104,7 @@ export class EqualizerPanel {
         title: "Output FFT",
       });
     } else {
-      appState.outputFFT.update({
+      appState.outputFFT.updateData({
         frequencies: outFFT.frequencies,
         magnitudes: outFFT.magnitudes,
       });
@@ -116,6 +115,7 @@ export class EqualizerPanel {
   // 3. Render sliders (with colored track)
   // =================================================================
   renderSliders() {
+    console.log(appState.mode);
     const modeData = appState.renderedJson[appState.mode];
     const sliders = modeData?.sliders || [];
 
@@ -215,7 +215,28 @@ export class EqualizerPanel {
   // =================================================================
   setMode(modeName) {
     appState.mode = modeName;
-    this._loadPrecomputedOutput().then(() => this.renderSliders());
+
+    const app = document.getElementById("mainApp");
+    const loading = document.getElementById("loadingSuspense");
+
+    // 1️⃣ Show loading spinner
+    if (app) app.style.display = "none";
+    if (loading) loading.style.display = "block";
+
+    // 2️⃣ Precompute output signal + FFT
+    this._loadPrecomputedOutput()
+      .then(() => {
+        // 3️⃣ Render sliders after output is ready
+        this.renderSliders();
+      })
+      .catch((err) => {
+        console.error("Failed to load output signal:", err);
+      })
+      .finally(() => {
+        // 4️⃣ Hide loading spinner and show main app
+        if (app) app.style.display = "grid"; // or your default layout
+        if (loading) loading.style.display = "none";
+      });
   }
 
   removeBand(index) {

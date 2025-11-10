@@ -1,4 +1,5 @@
 export async function extractSignalFromAudio(relativePath) {
+  if (!relativePath) return { amplitudes: [], sampleRate: 0 };
   const response = await fetch(relativePath);
   if (!response.ok) throw new Error("Failed to fetch audio file");
 

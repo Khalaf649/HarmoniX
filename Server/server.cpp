@@ -67,7 +67,7 @@ int main() {
             auto j = json::parse(req.body);
             auto samples = j["samples"].get<std::vector<double>>();
             double fs = j["fs"].get<double>();
-            std::cout<<fs;
+            
 
             size_t original_size = samples.size();
             size_t n = next_power_of_2(original_size);

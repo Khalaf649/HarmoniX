@@ -3,7 +3,7 @@ export const appState = {
   outputViewer: null,
   inputFFT: null,
   outputFFT: null,
-  mode: "generic",
+  mode: "",
   originalJson: null,
   renderedJson: null,
   isSpectrogramVisible: false,
