@@ -11,7 +11,7 @@ export class EqualizerPanel {
       this.panel = document.getElementById(panelId);
       if (!this.panel) throw new Error(`#${panelId} not found`);
 
-      // === Cache DOM elements ===
+      // ===  DOM elements ===
       this.modeSelect = this.panel.querySelector("#modeSelect");
       this.controlsContainer = this.panel.querySelector(".equalizer-controls");
       this.resetBtn = this.panel.querySelector("#btnReset");
@@ -26,6 +26,8 @@ export class EqualizerPanel {
       this.maxFreqInput = this.panel.querySelector("#max-freq");
       this.maxFreqValue = this.panel.querySelector("#max-freq-value");
       this.sliderNameInput = this.panel.querySelector("#slider-name");
+      this._styleSliderTrack(this.minFreqInput);
+      this._styleSliderTrack(this.maxFreqInput);
 
       if (!this.controlsContainer || !this.modeSelect)
         throw new Error("Required UI elements not found");
@@ -65,12 +67,15 @@ export class EqualizerPanel {
       this.handleAddSlider();
     });
 
+    // ✅ Corrected min/max input event listeners
     this.minFreqInput.addEventListener("input", () => {
       this.minFreqValue.textContent = `${this.minFreqInput.value} Hz`;
+      this._styleSliderTrack(this.minFreqInput);
     });
 
     this.maxFreqInput.addEventListener("input", () => {
       this.maxFreqValue.textContent = `${this.maxFreqInput.value} Hz`;
+      this._styleSliderTrack(this.maxFreqInput);
     });
   }
 
@@ -287,12 +292,5 @@ export class EqualizerPanel {
     a.download = "equalizer_project.json";
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  // =================================================================
-  // 6. External sync hook
-  // =================================================================
-  setOnSliderChange(callback) {
-    this.onSliderChange = callback; // called as onSliderChange(index, value)
   }
 }
