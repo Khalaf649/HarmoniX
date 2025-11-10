@@ -188,14 +188,7 @@ export class EqualizerPanel {
       this.controlsContainer.appendChild(sliderEl);
     });
 
-    // Populate mode dropdown if empty
-    if (this.modeSelect.children.length === 0) {
-      Object.keys(appState.originalJson).forEach((mode) => {
-        if (mode === "original_signal") return;
-        const opt = new Option(mode, mode, mode === appState.mode);
-        this.modeSelect.appendChild(opt);
-      });
-    }
+
   }
 
   // =================================================================
@@ -215,7 +208,8 @@ export class EqualizerPanel {
   // =================================================================
   setMode(modeName) {
     appState.mode = modeName;
-
+    appState.inputViewer.reset();
+    appState.inputFFT.reset();
     const app = document.getElementById("mainApp");
     const loading = document.getElementById("loadingSuspense");
 
