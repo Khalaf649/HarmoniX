@@ -4,18 +4,26 @@ export class SignalViewer {
     samples = [],
     sampleRate,
     audioSrc = null,
-    color,
-    title,
+    color = "#999",
+    title = "Signal",
+    parentId = "time-domain", // default parent container
   }) {
-    this.container = document.getElementById(containerId);
-    if (!this.container) throw new Error(`Container ${containerId} not found`);
-
+    this.containerId = containerId;
+    this.parentId = parentId;
+    this.color = color;
+    this.title = title;
     this.sampleRate = sampleRate;
     this.samples = samples;
     this.time = this.samples.map((_, i) => i / sampleRate);
     this.audio = audioSrc ? new Audio(audioSrc) : null;
-    this.color = color;
-    this.title = title;
+
+    // ✅ Create container first (before querying it)
+    this._createViewerElement();
+    this.container = document.getElementById(containerId);
+    if (!this.container) throw new Error(`Container ${containerId} not found`);
+
+    // ✅ Audio event handler binding (prevents leaks)
+    this._boundOnAudioTimeUpdate = this._onAudioTimeUpdate.bind(this);
 
     this.isPlaying = false;
     this.isMuted = false;
@@ -46,7 +54,7 @@ export class SignalViewer {
     this.panSlider = this.container.querySelector(".pan-slider");
     this.signalTitle.textContent = this.title;
 
-    // Plotly data
+    // Plotly setup
     this.plotData = [];
     this.plotLayout = {};
     this.plotConfig = {
@@ -56,15 +64,62 @@ export class SignalViewer {
     };
 
     this.bindControls();
-    this._initSliders(); // ✅ initialize slider fill
+    this._initSliders();
     this.render();
 
+    // ✅ Attach audio listeners
     if (this.audio) {
-      this.audio.addEventListener(
-        "timeupdate",
-        this._onAudioTimeUpdate.bind(this)
-      );
+      this.audio.addEventListener("timeupdate", this._boundOnAudioTimeUpdate);
+      this.audio.addEventListener("ended", () => {
+        this.isPlaying = false;
+        if (this.playBtn) this.playBtn.textContent = "▶";
+      });
     }
+  }
+
+  /* -------------------------- Create Viewer DOM -------------------------- */
+  _createViewerElement() {
+    const parent = document.getElementById(this.parentId);
+    if (!parent) throw new Error(`Parent container ${this.parentId} not found`);
+
+    // Avoid duplicates
+    if (document.getElementById(this.containerId)) return;
+
+    const wrapper = document.createElement("div");
+    wrapper.id = this.containerId;
+    wrapper.className = "card card-backdrop-blur signal-viewer";
+    wrapper.innerHTML = `
+      <div class="signal-viewer-header">
+        <h3 class="signal-viewer-title"></h3>
+        <div class="signal-viewer-duration">No Signal</div>
+      </div>
+
+      <div class="signal-plot-container" style="width: 100%; height: 300px;"></div>
+
+      <div class="playback-controls">
+        <div class="playback-controls-group">
+          <button class="btn btn-sm btn-default play-btn">▶</button>
+          <button class="btn btn-secondary btn-sm stop-btn">⏹</button>
+          <button class="btn btn-secondary btn-sm reset-btn">↺</button>
+          <button class="btn btn-secondary btn-sm mute-toggle-btn">🔊</button>
+        </div>
+
+        <div class="playback-controls-slider">
+          <span class="playback-controls-label speed-label">Speed: 1x</span>
+          <input type="range" min="0.25" max="2" step="0.25" value="1" class="speed-slider slider-input">
+          <span class="playback-controls-label pan-label">Pos</span>
+          <input type="range" min="0" max="1" step="0.001" value="0" class="pan-slider slider-input">
+        </div>
+
+        <div class="playback-controls-zoom">
+          <button class="btn btn-secondary btn-sm zoom-out">-</button>
+          <span class="playback-controls-zoom-label zoom-label">1x</span>
+          <button class="btn btn-secondary btn-sm zoom-in">+</button>
+        </div>
+      </div>
+    `;
+
+    parent.appendChild(wrapper);
   }
 
   /* -------------------------- Slider Fill Styling -------------------------- */
@@ -77,10 +132,12 @@ export class SignalViewer {
   }
 
   _styleSliderTrack(slider) {
+    if (!slider) return;
     const min = parseFloat(slider.min || 0);
     const max = parseFloat(slider.max || 1);
     const val = parseFloat(slider.value || 0);
-    const percent = ((val - min) / (max - min)) * 100;
+    const range = max - min;
+    const percent = range > 0 ? ((val - min) / range) * 100 : 0;
     slider.style.background = `linear-gradient(to right, #1fd5f9 0%, #1fd5f9 ${percent}%, #a0a0a0 ${percent}%, #a0a0a0 100%)`;
   }
   /* ----------------------------------------------------------------------- */
@@ -96,7 +153,7 @@ export class SignalViewer {
 
     if (this.panSlider) {
       this.panSlider.value = this.offset;
-      this._styleSliderTrack(this.panSlider); // ✅ update fill when panning
+      this._styleSliderTrack(this.panSlider);
     }
   }
 
@@ -200,13 +257,10 @@ export class SignalViewer {
       if (this.audio)
         this.audio.removeEventListener(
           "timeupdate",
-          this._onAudioTimeUpdate.bind(this)
+          this._boundOnAudioTimeUpdate
         );
       this.audio = new Audio(audioSrc);
-      this.audio.addEventListener(
-        "timeupdate",
-        this._onAudioTimeUpdate.bind(this)
-      );
+      this.audio.addEventListener("timeupdate", this._boundOnAudioTimeUpdate);
     }
 
     this.render();

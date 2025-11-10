@@ -149,7 +149,7 @@ export class EqualizerPanel {
               type="range"
               min="0"
               max="2"
-              step="0.01"
+              step="0.1"
               value="${band.value}"
               class="slider-input w-full"
             />
