@@ -4,6 +4,7 @@ import { extractSignalFromAudio } from "../utils/extractSignalFromAudio.js";
 import { calcFFT } from "../utils/calcFFT.js";
 import { SignalViewer } from "./SignalViewer.js";
 import { FourierController } from "./FourierController.js";
+import { applyEQ } from "../utils/applyEQ.js";
 
 export class EqualizerPanel {
   constructor(panelId = "control-panel") {
@@ -26,6 +27,8 @@ export class EqualizerPanel {
       this.maxFreqInput = this.panel.querySelector("#max-freq");
       this.maxFreqValue = this.panel.querySelector("#max-freq-value");
       this.sliderNameInput = this.panel.querySelector("#slider-name");
+      this.applyEqBtn = this.panel.querySelector("#apply-eq-btn");
+
       this._styleSliderTrack(this.minFreqInput);
       this._styleSliderTrack(this.maxFreqInput);
 
@@ -76,6 +79,41 @@ export class EqualizerPanel {
     this.maxFreqInput.addEventListener("input", () => {
       this.maxFreqValue.textContent = `${this.maxFreqInput.value} Hz`;
       this._styleSliderTrack(this.maxFreqInput);
+    });
+    this.applyEqBtn.addEventListener("click", async () => {
+      if (!appState.inputViewer) return;
+
+      try {
+        // Optionally: show loading state
+        this.applyEqBtn.disabled = true;
+        this.applyEqBtn.textContent = "Applying...";
+
+        const modifiedSamples = await applyEQ();
+        console.log(modifiedSamples);
+
+        // Update output viewer
+        if (appState.outputViewer) {
+          appState.outputViewer.updateSamples(
+            modifiedSamples,
+            appState.inputViewer.sampleRate
+          );
+        }
+
+        // Also update FFT if needed
+        const outFFT = await calcFFT(
+          modifiedSamples,
+          appState.inputViewer.sampleRate
+        );
+        if (appState.outputFFT) {
+          appState.outputFFT.updateData(outFFT.frequencies, outFFT.magnitudes);
+        }
+      } catch (err) {
+        console.error("Failed to apply EQ:", err);
+        alert(err.message);
+      } finally {
+        this.applyEqBtn.disabled = false;
+        this.applyEqBtn.textContent = "Apply Equalizer";
+      }
     });
   }
 

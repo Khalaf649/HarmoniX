@@ -64,6 +64,7 @@ int main() {
         set_cors(res); // Add CORS headers here
 
         try {
+            
             auto j = json::parse(req.body);
             auto samples = j["samples"].get<std::vector<double>>();
             double fs = j["fs"].get<double>();
@@ -92,19 +93,22 @@ int main() {
     });
 
     svr.Post("/applyEqualizer", [](const httplib::Request& req, httplib::Response& res) {
+        
         set_cors(res); // Add CORS headers here
+        
 
         try {
+            std::cout << "Request body: " << req.body << std::endl;
             auto j = json::parse(req.body);
             auto samples = j["samples"].get<std::vector<double>>();
             double fs = j["fs"].get<double>();
 
-            struct Band { double left, right, gain; };
+            struct Band {  double left, right, gain; };
             std::vector<Band> bands;
-            for (const auto& b : j["bands"]) {
-                bands.push_back({b["leftFrequency"].get<double>(),
-                                 b["rightFrequency"].get<double>(),
-                                 b["gain"].get<double>()});
+            for (const auto& b : j["sliders"]) {
+                bands.push_back({b["low"].get<double>(),
+                                 b["high"].get<double>(),
+                                 b["value"].get<double>()});
             }
 
             size_t original_size = samples.size();
