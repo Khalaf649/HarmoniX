@@ -5,7 +5,7 @@ import { calcFFT } from "../utils/calcFFT.js";
 import { SignalViewer } from "./SignalViewer.js";
 import { FourierController } from "./FourierController.js";
 import { applyEQ } from "../utils/applyEQ.js";
-import { samplesToAudioURL } from "../utils/samplesToWav.js";
+import { saveEQToServer } from "../utils/saveEQToServer.js";
 
 export class EqualizerPanel {
   constructor(panelId = "control-panel") {
@@ -94,17 +94,16 @@ export class EqualizerPanel {
           frequencies,
           magnitudes,
         } = await applyEQ();
-        const audioURL = samplesToAudioURL(
-          modifiedSamples,
-          appState.inputViewer.sampleRate
-        );
+        const filePath = await saveEQToServer(modifiedSamples);
+        appState.renderedJson[appState.mode].output_signal = filePath;
+        console.log("Saved output WAV:", filePath);
 
         // Update output viewer (time domain)
         if (appState.outputViewer) {
           appState.outputViewer.updateSamples(
             modifiedSamples,
             appState.inputViewer.sampleRate,
-            audioURL
+            filePath
           );
         }
 
