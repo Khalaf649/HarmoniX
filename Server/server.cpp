@@ -9,6 +9,7 @@ using json = nlohmann::json;
 
 const double PI = std::acos(-1.0);
 
+
 size_t next_power_of_2(size_t n)
 {
     size_t p = 1;

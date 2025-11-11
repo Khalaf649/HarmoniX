@@ -1,5 +1,5 @@
 {
-  "original_signal": "public/manga.mp3",
+  "original_signal": "public/mixed_audio.wav",
   "generic": {
     "sliders": [
       { "name": "Sub Bass", "low": 20, "high": 60, "value": 2 },
@@ -14,15 +14,12 @@
   },
   "musical": {
     "sliders": [
-      { "name": "Kick Drum", "low": 20, "high": 60, "value": 1.1 },
-      { "name": "Bass Guitar", "low": 60, "high": 250, "value": 1.3 },
-      { "name": "Piano Low", "low": 250, "high": 500, "value": 1 },
-      { "name": "Piano Mid", "low": 500, "high": 2000, "value": 1.2 },
-      { "name": "Guitar", "low": 2000, "high": 4000, "value": 1 },
-      { "name": "Vocals", "low": 4000, "high": 6000, "value": 1.1 },
-      { "name": "Cymbals / Highs", "low": 6000, "high": 20000, "value": 1.1 }
+      { "name": "bass", "low": 20, "high": 400, "value": 1 },
+      { "name": "HIGH note", "low": 700, "high": 2000, "value": 1 },
+      { "name": "drums", "low": 2000, "high": 6000, "value": 1 },
+      { "name": "violin", "low": 6000, "high": 10000, "value": 1 }
     ],
-    "output_signal": "public/manga.mp3"
+    "output_signal": ""
   },
   "human_voices": {
     "sliders": [
@@ -47,5 +44,9 @@
       { "name": "High-pitch Whistle", "low": 6000, "high": 20000, "value": 1.2 }
     ],
     "output_signal": "public/manga.mp3"
+  },
+  "music_model": {
+    "sliders": [],
+    "output_signal": ""
   }
 }

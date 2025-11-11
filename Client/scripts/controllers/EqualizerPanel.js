@@ -6,6 +6,7 @@ import { SignalViewer } from "./SignalViewer.js";
 import { FourierController } from "./FourierController.js";
 import { applyEQ } from "../utils/applyEQ.js";
 import { saveEQToServer } from "../utils/saveEQToServer.js";
+import { separateAudio } from "../utils/separateAudio.js";
 
 export class EqualizerPanel {
   constructor(panelId = "control-panel") {
@@ -129,10 +130,11 @@ export class EqualizerPanel {
     this.dialog.classList.add("hidden");
   }
 
-  handleAddSlider() {
+  async handleAddSlider() {
     const name = this.sliderNameInput.value || "Untitled";
     const min = parseFloat(this.minFreqInput.value);
     const max = parseFloat(this.maxFreqInput.value);
+
     if (min > max) {
       alert("Please enter a valid band");
       return;
@@ -149,7 +151,12 @@ export class EqualizerPanel {
     };
 
     modeData.sliders.push(newSlider);
-    this.renderSliders();
+
+    // Await renderSliders in case it's async (for music_model fetching)
+    if (typeof this.renderSliders === "function") {
+      await this.renderSliders();
+    }
+
     this.closeAddSliderDialog();
   }
 
@@ -216,9 +223,34 @@ export class EqualizerPanel {
   // =================================================================
   // 3. Render sliders & sync
   // =================================================================
-  renderSliders() {
+  async renderSliders() {
     const modeData = appState.renderedJson[appState.mode];
     const sliders = modeData?.sliders || [];
+    if (appState.mode === "music_model") {
+      try {
+        const samples = appState.currentSamples; // your audio samples array
+        const fs = appState.fs; // sample rate
+
+        const data = await separateAudio(
+          appState.inputViewer.samples,
+          appState.inputViewer.sampleRate
+        );
+        console.log(data);
+
+        // Map API response to sliders
+        sliders = data.map((d) => ({
+          name: d.stem,
+          low: d.dominantFrequency,
+          high: d.dominantFrequency,
+          value: 1.0, // default multiplier
+        }));
+
+        // Update modeData sliders
+        modeData.sliders = sliders;
+      } catch (err) {
+        console.error("Error fetching /separate_audio:", err);
+      }
+    }
 
     this.controlsContainer.innerHTML = sliders.length
       ? ""
@@ -293,22 +325,26 @@ export class EqualizerPanel {
   // =================================================================
   // 5. Mode / Bands / Reset / Save
   // =================================================================
-  setMode(modeName) {
+  async setMode(modeName) {
     appState.mode = modeName;
     appState.inputViewer.reset();
     appState.inputFFT.reset();
+
     const app = document.getElementById("mainApp");
     const loading = document.getElementById("loadingSuspense");
 
     if (app) app.style.display = "none";
     if (loading) loading.style.display = "block";
 
-    this._loadPrecomputedOutput()
-      .then(() => this.renderSliders())
-      .finally(() => {
-        if (app) app.style.display = "grid";
-        if (loading) loading.style.display = "none";
-      });
+    try {
+      await this._loadPrecomputedOutput();
+      await this.renderSliders(); // renderSliders should now be async
+    } catch (err) {
+      console.error("Error setting mode:", err);
+    } finally {
+      if (app) app.style.display = "grid";
+      if (loading) loading.style.display = "none";
+    }
   }
 
   removeBand(index) {
