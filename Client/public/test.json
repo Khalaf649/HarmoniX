@@ -1,5 +1,5 @@
 {
-  "original_signal": "public/mixed_audio.wav",
+  "original_signal": "public/manga.mp3",
   "generic": {
     "sliders": [
       { "name": "Sub Bass", "low": 20, "high": 60, "value": 2 },

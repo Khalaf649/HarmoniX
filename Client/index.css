@@ -716,6 +716,12 @@ button {
   justify-content: space-between;
   margin-bottom: var(--spacing-md);
 }
+.spectrogram-viewer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-md);
+}
 
 .signal-viewer-title {
   font-size: 1.125rem;
@@ -723,6 +729,12 @@ button {
   color: var(--color-foreground);
 }
 .fft-viewer-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.spectrogram-viewer-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-foreground);
@@ -819,8 +831,17 @@ button {
 .fft-viewer {
   padding: var(--spacing-md);
 }
+.spectrogram-viewer {
+  padding: var(--spacing-md);
+}
 
 .fft-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin-bottom: var(--spacing-sm);
+}
+.spectrogram-title {
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-foreground);
@@ -839,6 +860,7 @@ button {
   height: 300px;
   display: block;
 }
+
 /* Enhanced loading spinner animations */
 .loading-spinner {
   animation: spin 1s linear infinite;

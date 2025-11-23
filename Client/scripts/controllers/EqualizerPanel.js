@@ -4,6 +4,7 @@ import { extractSignalFromAudio } from "../utils/extractSignalFromAudio.js";
 import { calcFFT } from "../utils/calcFFT.js";
 import { SignalViewer } from "./SignalViewer.js";
 import { FourierController } from "./FourierController.js";
+import { SpectogramController } from "./SpectogramController.js";
 import { applyEQ } from "../utils/applyEQ.js";
 import { saveEQToServer } from "../utils/saveEQToServer.js";
 import { separateAudio } from "../utils/separateAudio.js";
@@ -23,6 +24,8 @@ export class EqualizerPanel {
       this.dialog = this.panel.querySelector("#dialog-overlay");
       this.closeDialogBtn = this.panel.querySelector("#close-dialog");
       this.addSliderForm = this.panel.querySelector("#add-slider-form");
+      this.showPrecomputedCheckbox =
+        this.panel.querySelector("#show-spectrograms");
 
       this.minFreqInput = this.panel.querySelector("#min-freq");
       this.minFreqValue = this.panel.querySelector("#min-freq-value");
@@ -52,6 +55,11 @@ export class EqualizerPanel {
     this.modeSelect.addEventListener("change", () =>
       this.setMode(this.modeSelect.value)
     );
+    this.showPrecomputedCheckbox.addEventListener("change", () => {
+      const isVisible = this.showPrecomputedCheckbox.checked;
+      const spectrogramContainers = document.querySelector("#Spectrograms");
+      spectrogramContainers.style.display = isVisible ? "block" : "none";
+    });
 
     this.resetBtn.addEventListener("click", () => this.reset());
     this.saveBtn.addEventListener("click", () => this.downloadJson());
@@ -186,6 +194,13 @@ export class EqualizerPanel {
       magnitudes: inputFFT.magnitudes,
       title: "Input FFT",
     });
+    appState.inputSpectogram = new SpectogramController({
+      containerId: "input-spectrogram",
+      title: "Input Spectrogram",
+      // times: inputFFT.times,
+      // frequencies: inputFFT.frequencies,
+      // magnitudes: inputFFT.magnitudes,
+    });
 
     await this._loadPrecomputedOutput();
   }
@@ -217,6 +232,17 @@ export class EqualizerPanel {
       });
     } else {
       appState.outputFFT.updateData(outFFT.frequencies, outFFT.magnitudes);
+    }
+    if (!appState.outputSpectrogram) {
+      appState.outputSpectrogram = new SpectogramController({
+        containerId: "output-spectrogram",
+        title: "Output Spectrogram",
+        // times: outFFT.times,
+        // frequencies: outFFT.frequencies,
+        // magnitudes: outFFT.magnitudes,
+      });
+    } else {
+      // appState.outputSpectrogram.updateData(outFFT.times, outFFT.frequencies, outFFT.magnitudes);
     }
   }
 
