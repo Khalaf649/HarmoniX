@@ -9,4 +9,5 @@ export const appState = {
   originalJson: null,
   renderedJson: null,
   isSpectrogramVisible: false,
+  ServerMode: 0, // 0: python, 1: cpp
 };

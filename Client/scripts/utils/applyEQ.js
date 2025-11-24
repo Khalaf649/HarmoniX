@@ -9,11 +9,16 @@ export async function applyEQ() {
   const fs = appState.inputViewer.sampleRate;
   const sliders = appState.renderedJson[appState.mode]?.sliders || [];
 
-  const response = await fetch("http://localhost:8080/applyEqualizer", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ samples: Array.from(samples), fs, sliders }),
-  });
+  const response = await fetch(
+    `http://localhost:${
+      appState.ServerMode === 0 ? 8000 : 8080
+    }/applyEqualizer`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ samples: Array.from(samples), fs, sliders }),
+    }
+  );
 
   if (!response.ok) {
     const text = await response.text();
@@ -26,6 +31,7 @@ export async function applyEQ() {
 
   // ✅ Now we expect samples + frequencies + magnitudes
   const result = await response.json();
+  console.log("EQ applied. Result:", result);
 
   return {
     samples: result.samples,

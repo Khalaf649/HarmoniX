@@ -1,15 +1,21 @@
 // utils/calcFFT.js
+import { appState } from "../appState.js";
 export async function calcFFT(signal, fs) {
   if (!fs || !signal) return { frequencies: [], magnitudes: [] };
   try {
-    const response = await fetch("http://localhost:8080/calculatefft", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        samples: Array.from(signal), // Convert Float64Array → normal array
-        fs: fs,
-      }),
-    });
+    const response = await fetch(
+      `http://localhost:${
+        appState.ServerMode === 0 ? 8000 : 8080
+      }/calculatefft`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          samples: Array.from(signal), // Convert Float64Array → normal array
+          fs: fs,
+        }),
+      }
+    );
 
     if (!response.ok) throw new Error("FFT API Request Failed");
 

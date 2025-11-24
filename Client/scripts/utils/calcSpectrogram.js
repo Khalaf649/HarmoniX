@@ -1,18 +1,22 @@
+import { appState } from "../appState.js";
 export async function calcSpectrogram(signal, fs) {
   try {
     if (!fs || !signal) {
       return { x: [], y: [], z: [] };
     }
-    const response = await fetch("http://localhost:8080/spectrogram", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        samples: Array.from(signal),
-        fs: fs,
-      }),
-    });
+    const response = await fetch(
+      `http://localhost:${appState.ServerMode === 0 ? 8000 : 8080}/spectrogram`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          samples: Array.from(signal),
+          fs: fs,
+        }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error ${response.status}`);
