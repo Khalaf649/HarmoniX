@@ -8,6 +8,7 @@ export async function applyEQ() {
   const samples = appState.inputViewer.samples;
   const fs = appState.inputViewer.sampleRate;
   const sliders = appState.renderedJson[appState.mode]?.sliders || [];
+  console.log(sliders);
 
   const response = await fetch(
     `http://localhost:${

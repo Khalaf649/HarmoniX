@@ -1,5 +1,5 @@
 {
-  "original_signal": "public/drums.wav",
+  "original_signal": "public/khalaf.wav",
   "generic": {
     "sliders": [
       { "name": "Sub Bass", "low": 20, "high": 60, "value": 2 },
@@ -13,17 +13,12 @@
     "output_signal": ""
   },
   "musical": {
-    "sliders": [
-      { "name": "guitar", "low": 47, "high": 87, "value": 1 },
-      { "name": "khalaf", "low": 815, "high": 855, "value": 1 },
-      { "name": "violin", "low": 560, "high": 600, "value": 1 },
-      { "name": "bass_guitar", "low": 257, "high": 297, "value": 1 }
-    ],
+    "sliders": [],
     "AI_Sliders": [
-      { "name": "salma", "low": 47, "high": 87, "value": 1 },
-      { "name": "vocals", "low": 815, "high": 855, "value": 1 },
-      { "name": "violin", "low": 560, "high": 600, "value": 1 },
-      { "name": "bass_guitar", "low": 257, "high": 297, "value": 1 }
+      { "name": "drums", "low": 47, "high": 87, "value": 0 },
+      { "name": "vocals", "low": 815, "high": 855, "value": 0 },
+      { "name": "violin", "low": 560, "high": 600, "value": 0.9 },
+      { "name": "bass_guitar", "low": 257, "high": 297, "value": 0 }
     ],
     "output_signal": ""
   },

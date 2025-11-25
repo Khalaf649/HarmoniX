@@ -8,9 +8,10 @@ export async function ApplyAi(samples, sampleRate, sliders) {
       sampleRate: sampleRate,
       sliders: sliders,
     };
+    console.log("Sending payload to AI API:", payload);
 
     // Placeholder API call
-    const response = await fetch("http://localhost:5000/api/ai-enhance", {
+    const response = await fetch("http://localhost:8000/AI_musical_equalizer", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -23,6 +24,7 @@ export async function ApplyAi(samples, sampleRate, sliders) {
     }
 
     const data = await response.json();
+    console.log("AI API response:", data);
 
     // Expected response format:
     // {

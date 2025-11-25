@@ -50,6 +50,15 @@ class SpectrogramRequest(BaseModel):
     samples: List[float]
     fs: float
 
+class GainItem(BaseModel):
+    name: str
+    value: float
+
+class AudioRequest(BaseModel):
+    samples: List[float]
+    sampleRate: int
+    sliders: List[GainItem]
+
 
 # ---------- Utils ----------
 def next_power_of_2(n):
@@ -203,8 +212,66 @@ def save_eq(req: EQRequestSave):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+def rms(x):
+    return np.sqrt(np.mean(x**2))
 
+# --------------------
+# Load Demucs model globally
+# --------------------
+model = pretrained.get_model('htdemucs_6s')
+model.eval()
+@app.post("/AI_musical_equalizer")
+def process_audio(req: AudioRequest):
+    samples = np.array(req.samples, dtype=np.float32)
+    fs = req.sampleRate
 
+    # Ensure 2D audio
+    if samples.ndim == 1:
+        samples = np.stack([samples, samples], axis=1)
+
+    # Normalize
+    samples = samples / np.max(np.abs(samples))
+    audio_tensor = torch.from_numpy(samples.T).float()
+
+    # Separate
+    with torch.no_grad():
+        sources = apply_model(model, audio_tensor.unsqueeze(0), device='cpu')[0]
+
+    # Map slidername to stem index (adjust based on Demucs output)
+    stem_names = ['drums', 'vocals', 'violin', 'bass_guitar']
+    stem_indices = [0, 3, 2, 5]
+    stem_map = dict(zip(stem_names, stem_indices))
+
+    # Apply gains
+    final_mix = np.zeros_like(samples)
+    for gain_item in req.sliders:
+        name = gain_item.name
+        gain_val = gain_item.value
+        if name in stem_map:
+            idx = stem_map[name]
+            mono_audio = sources[idx].mean(dim=0).numpy()
+            gained_audio = mono_audio * gain_val
+            final_mix[:, 0] += gained_audio
+            final_mix[:, 1] += gained_audio
+
+    # Normalize final mix
+    max_val = np.max(np.abs(final_mix))
+    if max_val > 0:
+        final_mix = final_mix / max_val
+
+    # Compute FFT
+    N = final_mix.shape[0]
+    fft_vals = np.fft.fft(final_mix[:,0])  # left channel
+    fft_freqs = np.fft.fftfreq(N, 1/fs)
+    positive_freqs = fft_freqs[:N//2].tolist()
+    magnitudes = np.abs(fft_vals[:N//2]).tolist()
+
+    return {
+        "samples": final_mix[:,0].tolist(),  # left channel
+        "fs": fs,
+        "frequencies": positive_freqs,
+        "magnitudes": magnitudes
+    }
 
 
 

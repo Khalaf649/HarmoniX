@@ -1,11 +1,11 @@
 import soundfile as sf
 
-def extract_first_10_seconds(input_file, output_file="drums.wav"):
+def extract_first_10_seconds(input_file, output_file="mixed_audio.wav"):
     # Read audio
     audio, sr = sf.read(input_file)
 
     # Duration to extract (in seconds)
-    duration = 1  
+    duration = 5  
     num_samples = duration * sr
 
     # Slice safely → in case audio is < 10 sec

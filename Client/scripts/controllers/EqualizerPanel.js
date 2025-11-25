@@ -8,7 +8,7 @@ import { applyEQ } from "../utils/applyEQ.js";
 import { saveEQToServer } from "../utils/saveEQToServer.js";
 import { separateAudio } from "../utils/separateAudio.js";
 import { calcSpectrogram } from "../utils/calcSpectrogram.js";
-import { ApplyAi } from "../utils/ApplyAi.js";
+import { ApplyAi } from "../utils/AI_musical.js";
 
 export class EqualizerPanel {
   constructor(panelId = "control-panel") {
@@ -65,7 +65,7 @@ export class EqualizerPanel {
     this.showPrecomputedCheckbox.addEventListener("change", () => {
       const isVisible = this.showPrecomputedCheckbox.checked;
       const spectrogramContainers = document.querySelector("#Spectrograms");
-      spectrogramContainers.style.display = isVisible ? "block" : "none";
+      spectrogramContainers.style.display = isVisible ? "grid" : "none";
     });
 
     // AI Mode Toggle Handler
@@ -259,9 +259,9 @@ export class EqualizerPanel {
       if (isAIMode) {
         // Call AI API with sliders
         const modeData = appState.renderedJson[appState.mode];
-        const sliders = modeData?.AI_sliders || [];
+        const sliders = modeData?.AI_Sliders || [];
 
-        const result = await callAIAPI(
+        const result = await ApplyAi(
           appState.inputViewer.samples,
           appState.inputViewer.sampleRate,
           sliders
@@ -270,6 +270,12 @@ export class EqualizerPanel {
         modifiedSamples = result.samples;
         frequencies = result.frequencies;
         magnitudes = result.magnitudes;
+        console.log(
+          "Modified samples after EQ:",
+          modifiedSamples,
+          frequencies,
+          magnitudes
+        );
       } else {
         // Use normal EQ apply
         const result = await applyEQ();
@@ -392,7 +398,7 @@ export class EqualizerPanel {
         const isAIMode =
           (appState.mode === "musical" || appState.mode === "human_voices") &&
           this.useAI;
-        const sliderArray = isAIMode ? modeData?.AI_sliders : modeData?.sliders;
+        const sliderArray = isAIMode ? modeData?.AI_Sliders : modeData?.sliders;
 
         if (sliderArray) {
           sliderArray[i].value = val;
@@ -434,6 +440,8 @@ export class EqualizerPanel {
     appState.inputViewer.reset();
     appState.inputFFT.reset();
     appState.inputSpectogram.reset();
+    if (modeName === "generic") this.addSliderBtn.style.display = "block";
+    else this.addSliderBtn.style.display = "none";
 
     // Show/hide AI mode toggle based on mode
     if (this.aiModeContainer) {
