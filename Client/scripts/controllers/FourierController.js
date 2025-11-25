@@ -18,6 +18,7 @@ export class FourierController {
 
     this.zoom = 1;
     this.offset = 0;
+    this.useAudiogramScale = false; // Toggle: false = linear, true = audiogram (log freq, dB mag)
 
     // ✅ Create DOM if missing
     this._createViewerElement();
@@ -30,6 +31,8 @@ export class FourierController {
     this.zoomOutBtn = this.container.querySelector(".zoom-out");
     this.zoomLabel = this.container.querySelector(".zoom-label");
     this.panSlider = this.container.querySelector(".pan-slider");
+    this.scaleToggle = this.container.querySelector(".scale-toggle");
+    this.scaleLabel = this.container.querySelector(".scale-label");
     this.fftTitle = this.container.querySelector(".fft-viewer-title");
 
     if (this.fftTitle) this.fftTitle.textContent = this.title;
@@ -72,6 +75,13 @@ export class FourierController {
           <span class="playback-controls-zoom-label zoom-label">1x</span>
           <button class="btn btn-secondary btn-sm zoom-in">+</button>
         </div>
+        <div class="playback-controls-scale">
+          <label class="switch">
+            <input type="checkbox" class="scale-toggle switch-input">
+            <span class="switch-slider"></span>
+          </label>
+          <span class="playback-controls-label scale-label">Linear</span>
+        </div>
       </div>
     `;
     parent.appendChild(wrapper);
@@ -108,6 +118,19 @@ export class FourierController {
     });
     this.panSlider?.addEventListener("input", (e) => {
       this.offset = parseFloat(e.target.value);
+      this._styleSliderTrack(this.panSlider);
+      this.render();
+    });
+    this.scaleToggle?.addEventListener("change", (e) => {
+      this.useAudiogramScale = e.target.checked;
+      this.offset = 0;
+      this.zoom = 1;
+      if (this.panSlider) this.panSlider.value = 0;
+      if (this.scaleLabel) {
+        this.scaleLabel.textContent = this.useAudiogramScale
+          ? "Audiogram"
+          : "Linear";
+      }
       this._styleSliderTrack(this.panSlider);
       this.render();
     });
@@ -161,9 +184,23 @@ export class FourierController {
       return;
     }
 
+    // Transform data based on scale
+    let xData = visibleFreq;
+    let yData = visibleMag;
+    let xLabel = "Frequency (Hz)";
+    let yLabel = "Magnitude";
+
+    if (this.useAudiogramScale) {
+      // Audiogram scale: log frequency (Hz), dB magnitude (20*log10(mag))
+      xData = visibleFreq.map((f) => (f > 0 ? Math.log10(f) : -10)); // Avoid log(0)
+      yData = visibleMag.map((m) => (m > 0 ? 20 * Math.log10(m) : -80)); // Clamp to -80 dB
+      xLabel = "Log Frequency (log Hz)";
+      yLabel = "Magnitude (dB)";
+    }
+
     const trace = {
-      x: visibleFreq,
-      y: visibleMag,
+      x: xData,
+      y: yData,
       type: "scatter",
       mode: "lines",
       line: { color: "#1FD5F9", width: 2 },
@@ -173,6 +210,7 @@ export class FourierController {
     const layout = {
       title: false,
       xaxis: {
+        title: xLabel,
         showgrid: false,
         zeroline: false,
         showline: true,
@@ -180,13 +218,14 @@ export class FourierController {
         mirror: true,
       },
       yaxis: {
+        title: yLabel,
         showgrid: false,
         zeroline: false,
         showline: true,
         linewidth: 1,
         mirror: true,
       },
-      margin: { l: 30, r: 10, t: 0, b: 30 },
+      margin: { l: 50, r: 10, t: 0, b: 40 },
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0)",
       dragmode: "pan",
@@ -212,6 +251,9 @@ export class FourierController {
 
     if (this.panSlider) this.panSlider.value = 0;
     if (this.zoomLabel) this.zoomLabel.textContent = "1x";
+    if (this.scaleToggle) this.scaleToggle.checked = false;
+    if (this.scaleLabel) this.scaleLabel.textContent = "Linear";
+    this.useAudiogramScale = false;
 
     this._styleSliderTrack(this.panSlider);
 
