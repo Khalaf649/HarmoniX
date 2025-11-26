@@ -288,7 +288,7 @@ async def process_audio(file: UploadFile = File(...), sliders: str = Form(...)):
 
     return {
         "samples": final_mix[:, 0].tolist(),  # left channel
-        "fs": int(fs),
+        "sampleRate": int(fs),
         "frequencies": positive_freqs,
         "magnitudes": magnitudes,
     }

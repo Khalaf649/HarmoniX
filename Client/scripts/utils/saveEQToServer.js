@@ -1,7 +1,6 @@
 import { appState } from "../appState.js";
 
 export async function saveEQToServer(samples, sampleRate) {
-  console.log("Saving EQ result to server...", samples, sampleRate);
   const response = await fetch("http://localhost:8000/saveEQ", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

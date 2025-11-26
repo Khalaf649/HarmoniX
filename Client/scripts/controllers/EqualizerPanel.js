@@ -6,7 +6,6 @@ import { FourierController } from "./FourierController.js";
 import { SpectogramController } from "./SpectogramController.js";
 import { applyEQ } from "../utils/applyEQ.js";
 import { saveEQToServer } from "../utils/saveEQToServer.js";
-import { separateAudio } from "../utils/separateAudio.js";
 import { calcSpectrogram } from "../utils/calcSpectrogram.js";
 import { ApplyAi } from "../utils/ApplyAi.js";
 
