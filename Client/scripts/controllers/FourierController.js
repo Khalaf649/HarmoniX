@@ -11,10 +11,6 @@ export class FourierController {
     this.frequencies = frequencies;
     this.magnitudes = magnitudes;
     this.title = title;
-    console.log("FourierController initialized with data:", {
-      frequencies,
-      magnitudes,
-    });
 
     this.zoom = 1;
     this.offset = 0;

@@ -1,24 +1,26 @@
 import { appState } from "../appState.js";
-export async function ApplyAi(samples, sampleRate, sliders) {
+
+// New: send the audio file (blob) + sliders as multipart/form-data
+export async function ApplyAi(fileUrl, sliders) {
   try {
-    // TODO: Replace with actual AI API endpoint
-    // For now, this is a placeholder that will be implemented later
-    const url = appState.mode === "musical" ? "MusicAi" : "HumanAi";
+    const endpoint = appState.mode === "musical" ? "MusicAi" : "HumanAi";
 
-    const payload = {
-      samples: Array.from(samples),
-      sampleRate: sampleRate,
-      sliders: sliders,
-    };
-    console.log("Sending payload to AI API:", payload);
+    // Fetch the file (from a public path like `public/...`) as a Blob
+    const resp = await fetch(fileUrl);
+    if (!resp.ok) throw new Error(`Failed to fetch file: ${resp.statusText}`);
+    const blob = await resp.blob();
 
-    // Placeholder API call
-    const response = await fetch(`http://localhost:8000/${url}`, {
+    const fd = new FormData();
+    // Attempt to derive a filename from the URL
+    const urlParts = fileUrl.split("/");
+    const filename = urlParts[urlParts.length - 1] || "input.wav";
+    fd.append("file", blob, filename);
+    fd.append("sliders", JSON.stringify(sliders || []));
+    console.log("Sending to AI API:", endpoint, fd);
+
+    const response = await fetch(`http://localhost:8000/${endpoint}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
+      body: fd,
     });
 
     if (!response.ok) {
@@ -32,6 +34,7 @@ export async function ApplyAi(samples, sampleRate, sliders) {
       samples: new Float32Array(data.samples || []),
       frequencies: data.frequencies || [],
       magnitudes: data.magnitudes || [],
+      sampleRate: data.sampleRate || 44100,
     };
   } catch (err) {
     console.error("Failed to call AI API:", err);

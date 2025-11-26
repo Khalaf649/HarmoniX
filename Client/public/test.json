@@ -1,6 +1,6 @@
 {
   "generic": {
-    "input_signal": "public/khalaf.wav",
+    "input_signal": "public/synthetic_signal.wav",
     "sliders": [
       { "name": "Sub Bass", "low": 20, "high": 60, "value": 2 },
       { "name": "Bass", "low": 60, "high": 250, "value": 2 },
@@ -13,8 +13,13 @@
     "output_signal": ""
   },
   "musical": {
-    "input_signal": "public/khalaf.wav",
-    "sliders": [],
+    "input_signal": "public/music.wav",
+    "sliders": [
+      { "name": "violin", "low": 5000, "high": 7000, "value": 0 },
+      { "name": "vocals", "low": 510, "high": 1000, "value": 0 },
+      { "name": "drums", "low": 1, "high": 99, "value": 0 },
+      { "name": "bass_guitar", "low": 100, "high": 300, "value": 1.2 }
+    ],
     "AI_sliders": [
       { "name": "drums", "low": 47, "high": 87, "value": 0 },
       { "name": "vocals", "low": 815, "high": 855, "value": 0 },
@@ -24,22 +29,19 @@
     "output_signal": ""
   },
   "human_voices": {
-    "input_signal": "public/4_mixture.wav",
+    "input_signal": "public/human.wav",
     "sliders": [
-      { "name": "Male Voice", "low": 20, "high": 60, "value": 0.9 },
-      { "name": "Female Voice", "low": 60, "high": 250, "value": 1 },
-      { "name": "Child Voice", "low": 250, "high": 500, "value": 1.1 },
-      { "name": "Adult Midrange", "low": 500, "high": 2000, "value": 1.3 },
-      { "name": "Whisper / Soft", "low": 2000, "high": 4000, "value": 1.4 },
-      { "name": "Speech Presence", "low": 4000, "high": 6000, "value": 1.2 },
-      { "name": "Air / Clarity", "low": 6000, "high": 20000, "value": 1 }
+      { "name": "Male 1", "low": 20, "high": 60, "value": 0.9 },
+      { "name": "Male 2", "low": 60, "high": 250, "value": 1 },
+      { "name": "Female", "low": 250, "high": 500, "value": 1.1 },
+      { "name": "Male 3", "low": 500, "high": 2000, "value": 1.3 }
     ],
     "output_signal": "public/manga.mp3",
     "AI_sliders": [
-      { "name": "person 1", "low": 47, "high": 87, "value": 0 },
-      { "name": "person 2", "low": 815, "high": 855, "value": 0 },
-      { "name": "person 3", "low": 560, "high": 600, "value": 0.9 },
-      { "name": "person 4", "low": 257, "high": 297, "value": 0 }
+      { "name": "person 1", "low": 90, "high": 1300, "value": 0 },
+      { "name": "person 2", "low": 300, "high": 1700, "value": 0 },
+      { "name": "person 3", "low": 700, "high": 1800, "value": 0.9 },
+      { "name": "person 4", "low": 90, "high": 500, "value": 0 }
     ]
   },
   "animal_voices": {

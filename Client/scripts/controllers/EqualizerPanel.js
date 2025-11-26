@@ -275,7 +275,7 @@ export class EqualizerPanel {
         this.controlsContainer.style.pointerEvents = "none";
       if (this.saveBtn) this.saveBtn.disabled = true;
 
-      let modifiedSamples, frequencies, magnitudes;
+      let modifiedSamples, frequencies, magnitudes, sampleRate;
 
       // Check if AI mode is enabled for musical or human_voices
       const isAIMode =
@@ -287,36 +287,32 @@ export class EqualizerPanel {
         const modeData = appState.renderedJson[appState.mode];
         const sliders = modeData?.AI_sliders || [];
 
-        const result = await ApplyAi(
-          appState.inputViewer.samples,
-          appState.inputViewer.sampleRate,
-          sliders
-        );
+        // Send the original audio file (URL) and the sliders to the server
+        const fileUrl =
+          appState.inputViewer?.audioSrc ||
+          appState.renderedJson[appState.mode]?.input_signal;
+        const result = await ApplyAi(fileUrl, sliders);
 
         modifiedSamples = result.samples;
         frequencies = result.frequencies;
         magnitudes = result.magnitudes;
-        console.log(
-          "Modified samples after EQ:",
-          modifiedSamples,
-          frequencies,
-          magnitudes
-        );
+        sampleRate = result.sampleRate || appState.inputViewer.sampleRate;
       } else {
         // Use normal EQ apply
         const result = await applyEQ();
         modifiedSamples = result.samples;
         frequencies = result.frequencies;
         magnitudes = result.magnitudes;
+        sampleRate = result.sampleRate || appState.inputViewer.sampleRate;
       }
 
-      const filePath = await saveEQToServer(modifiedSamples);
+      const filePath = await saveEQToServer(modifiedSamples, sampleRate);
       appState.renderedJson[appState.mode].output_signal = filePath;
 
       // Update output viewer (time domain)
       appState.outputViewer?.updateSamples(
         modifiedSamples,
-        appState.inputViewer.sampleRate,
+        sampleRate,
         filePath
       );
 

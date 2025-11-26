@@ -1,5 +1,5 @@
 # server/main.py
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import numpy as np
@@ -14,6 +14,8 @@ from datetime import datetime
 import torch
 import torchaudio
 from typing import List
+import io
+import json
 
 app = FastAPI()
 
@@ -223,17 +225,32 @@ def rms(x):
 # --------------------
 model_music = pretrained.get_model('htdemucs_6s')
 model_music.eval()
-@app.post("/MusicAi")
-def process_audio(req: AudioRequest):
-    samples = np.array(req.samples, dtype=np.float32)
-    fs = req.sampleRate
 
+
+@app.post("/MusicAi")
+async def process_audio(file: UploadFile = File(...), sliders: str = Form(...)):
+    # Parse sliders (expected JSON string)
+    try:
+        slider_items = json.loads(sliders)
+    except Exception:
+        slider_items = []
+
+    # Read uploaded audio file
+    data_bytes = await file.read()
+    try:
+        import soundfile as sf
+        audio_np, fs = sf.read(io.BytesIO(data_bytes), dtype='float32')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read uploaded file: {e}")
+
+    samples = np.array(audio_np, dtype=np.float32)
     # Ensure 2D audio
     if samples.ndim == 1:
         samples = np.stack([samples, samples], axis=1)
 
     # Normalize
-    samples = samples / np.max(np.abs(samples))
+    denom = np.max(np.abs(samples)) if np.max(np.abs(samples)) > 0 else 1.0
+    samples = samples / denom
     audio_tensor = torch.from_numpy(samples.T).float()
 
     # Separate
@@ -242,14 +259,14 @@ def process_audio(req: AudioRequest):
 
     # Map slidername to stem index (adjust based on Demucs output)
     stem_names = ['drums', 'vocals', 'violin', 'bass_guitar']
-    stem_indices = [0, 3, 2, 5]
+    stem_indices = [0, 2, 3, 5]
     stem_map = dict(zip(stem_names, stem_indices))
 
     # Apply gains
     final_mix = np.zeros_like(samples)
-    for gain_item in req.sliders:
-        name = gain_item.name
-        gain_val = gain_item.value
+    for gain_item in slider_items:
+        name = gain_item.get('name') if isinstance(gain_item, dict) else getattr(gain_item, 'name', None)
+        gain_val = gain_item.get('value') if isinstance(gain_item, dict) else getattr(gain_item, 'value', 1.0)
         if name in stem_map:
             idx = stem_map[name]
             mono_audio = sources[idx].mean(dim=0).numpy()
@@ -264,16 +281,16 @@ def process_audio(req: AudioRequest):
 
     # Compute FFT
     N = final_mix.shape[0]
-    fft_vals = np.fft.fft(final_mix[:,0])  # left channel
-    fft_freqs = np.fft.fftfreq(N, 1/fs)
-    positive_freqs = fft_freqs[:N//2].tolist()
-    magnitudes = np.abs(fft_vals[:N//2]).tolist()
+    fft_vals = np.fft.fft(final_mix[:, 0])  # left channel
+    fft_freqs = np.fft.fftfreq(N, 1 / fs)
+    positive_freqs = fft_freqs[: N // 2].tolist()
+    magnitudes = np.abs(fft_vals[: N // 2]).tolist()
 
     return {
-        "samples": final_mix[:,0].tolist(),  # left channel
-        "fs": fs,
+        "samples": final_mix[:, 0].tolist(),  # left channel
+        "fs": int(fs),
         "frequencies": positive_freqs,
-        "magnitudes": magnitudes
+        "magnitudes": magnitudes,
     }
 
 
@@ -284,8 +301,9 @@ def process_audio(req: AudioRequest):
 
 import soundfile as sf
 
+
 @app.post("/HumanAi")
-def HumanAi(req: AudioRequest):
+async def HumanAi(file: UploadFile = File(...), sliders: str = Form(...)):
     SAMPLE_URL = "https://josephzhu.com/Multi-Decoder-DPRNN/examples/2_mixture.wav"
     MODEL_DEF_URL = "https://raw.githubusercontent.com/asteroid-team/asteroid/master/egs/wsj0-mix-var/Multi-Decoder-DPRNN/model.py"
 
@@ -306,15 +324,18 @@ def HumanAi(req: AudioRequest):
     model_human.to(device)
     print(f"Model loaded on {device}")
 
-    # ✅ 1. SAVE INPUT AUDIO LOCALLY (timestamped)
-    input_filename = f"input.wav"
+    # Read uploaded file
+    data_bytes = await file.read()
+    try:
+        audio_np, fs = sf.read(io.BytesIO(data_bytes), dtype='float32')
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to read uploaded file: {e}")
 
-    mixture_tensor = torch.tensor(req.samples, dtype=torch.float32).unsqueeze(0)
-    torchaudio.save(input_filename, mixture_tensor, req.sampleRate)
-    print(f"Saved input as {input_filename}")
-
-    # ✅ Convert to device
-    mixture, fs = torchaudio.load(input_filename)
+    # Convert to torch tensor with shape (channels, time)
+    if audio_np.ndim == 1:
+        mixture = torch.tensor(audio_np).unsqueeze(0)
+    else:
+        mixture = torch.tensor(audio_np.T)
     mixture = mixture.to(device)
 
     # ✅ 2. SEPARATE SOURCES (same as original script)
@@ -336,22 +357,29 @@ def HumanAi(req: AudioRequest):
         print(f"Saved: {output_filename}")
 
     # ✅ 4. APPLY SLIDER GAINS
-    final_mix = torch.zeros_like(est_sources[0])
+    final_mix = torch.zeros(est_sources.shape[1], dtype=est_sources.dtype)
 
-    for i, slider in enumerate(req.sliders):
+    try:
+        slider_items = json.loads(sliders)
+    except Exception:
+        slider_items = []
+
+    for i, slider in enumerate(slider_items):
         if i < est_sources.shape[0]:
-            final_mix += est_sources[i] * slider.value
+            val = slider.get('value') if isinstance(slider, dict) else getattr(slider, 'value', 1.0)
+            final_mix += est_sources[i] * val
 
     # ✅ 5. FFT (positive frequencies only)
     n = final_mix.shape[0]
     fft_data = torch.fft.fft(final_mix)
-    magnitudes = torch.abs(fft_data)[:n//2].numpy()
-    frequencies = np.fft.fftfreq(n, d=1/req.sampleRate)[:n//2]
+    magnitudes = torch.abs(fft_data)[: n // 2].numpy()
+    frequencies = np.fft.fftfreq(n, d=1 / fs)[: n // 2]
 
     samples_out = final_mix.numpy().tolist()
 
     return {
         "samples": samples_out,
         "frequencies": frequencies.tolist(),
-        "magnitudes": magnitudes.tolist()
+        "magnitudes": magnitudes.tolist(),
+        "sampleRate": int(fs)
     }

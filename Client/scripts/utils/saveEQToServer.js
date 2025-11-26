@@ -1,19 +1,16 @@
 import { appState } from "../appState.js";
 
-export async function saveEQToServer(samples) {
-  console.log("Saving EQ to server with mode:", appState.mode);
-  console.log(samples);
-  console.log("Sample Rate:", appState.inputViewer.sampleRate);
+export async function saveEQToServer(samples, sampleRate) {
+  console.log("Saving EQ result to server...", samples, sampleRate);
   const response = await fetch("http://localhost:8000/saveEQ", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       samples: Array.from(samples),
-      sampleRate: appState.inputViewer.sampleRate,
+      sampleRate: sampleRate || appState.inputViewer.sampleRate,
       mode: appState.mode,
     }),
   });
-  console.log("Server response:", response);
 
   if (!response.ok) {
     const text = await response.text();

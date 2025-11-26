@@ -8,7 +8,7 @@ def rms(x):
     return np.sqrt(np.mean(x**2))
 
 def separate_and_apply_gain():
-    YOUR_FILE = "./khalaf.wav"
+    YOUR_FILE = "./mixed_audio.wav"
     print(f"🔊 Processing: {YOUR_FILE}")
 
     # Load model
