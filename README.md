@@ -11,7 +11,7 @@ Visualize waveforms, FFTs, and spectrograms, tweak frequency bands with surgical
 
 ## Demo
 
-![Demo GIF](https://raw.githubusercontent.com/Khalaf649/HarmoniX/main/assets/demo.gif)
+![Demo GIF](./assets/demo.gif)
 
 > If you want to hear the sound, [click here](https://drive.google.com/file/d/1Q5yXRGNZBlAcaXBslUUfZFE8gzZ6pK_S/view?usp=sharing) to access it.
 
