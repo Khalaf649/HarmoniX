@@ -11,9 +11,10 @@ Visualize waveforms, FFTs, and spectrograms, tweak frequency bands with surgical
 
 ## Demo
 
-![Demo GIF](./assets/demo.gif)
+<img src="./assets/demo.gif" alt="Demo GIF" width="1000">
 
-> If you want to hear the sound, [click here](https://drive.google.com/file/d/1Q5yXRGNZBlAcaXBslUUfZFE8gzZ6pK_S/view?usp=sharing) to access it.
+<p>If you want to hear the sound, <a href="https://drive.google.com/file/d/1Q5yXRGNZBlAcaXBslUUfZFE8gzZ6pK_S/view?usp=sharing">click here</a>.</p>
+
 
 ## Screenshot Gallery
 
