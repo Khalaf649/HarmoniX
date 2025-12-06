@@ -11,11 +11,9 @@ Visualize waveforms, FFTs, and spectrograms, tweak frequency bands with surgical
 
 ## Demo
 
-<video width="640" height="360" controls>
-  <source src="./assets/demo.mp4" type="video/mp4">
-</video>
+![Demo GIF](https://raw.githubusercontent.com/Khalaf649/HarmoniX/main/assets/demo.gif)
 
----
+> If you want to hear the sound, [click here](https://drive.google.com/file/d/1Q5yXRGNZBlAcaXBslUUfZFE8gzZ6pK_S/view?usp=sharing) to access it.
 
 ## Screenshot Gallery
 
@@ -90,17 +88,16 @@ It combines precise DSP visualizers with optional AI-powered enhancement modesâ€
 
 **Table of contents**
 
-- **Installation**
-- **Quick Start**
-- **Usage**
-- **Project JSON Format**
-- **AI endpoints**
-- **Development & Contributing**
-- **License & Contact**
+- [Installation](#installation)
+- [Quick Start](#run)
+- [Usage](#usage)
+- [Project JSON Format](#project-json-format)
+- [AI endpoints](#ai-endpoints)
+- [Development & Contributing](#development--contributing)
 
 ---
 
-**Installation**
+# installation
 
 Prerequisites
 
@@ -124,7 +121,7 @@ cd "HarmoniX\Client"
 npm install
 ```
 
-**Run**
+# Run
 
 Start the backend (example using uvicorn):
 
