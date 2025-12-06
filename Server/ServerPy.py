@@ -99,6 +99,12 @@ def calculate_fft(req: FFTRequest):
     }
 
 
+# Backwards/alternate route names (aliases)
+@app.post("/CalcFFT")
+def calcfft_alias(req: FFTRequest):
+    return calculate_fft(req)
+
+
 # ===============================================================
 #   2️⃣ /applyEqualizer
 # ===============================================================
@@ -142,6 +148,11 @@ def apply_equalizer(req: EQRequest):
         "frequencies": vis_freqs.tolist(),
         "magnitudes": vis_mags.tolist()
     }
+
+
+@app.post("/ApplyEq")
+def applyeq_alias(req: EQRequest):
+    return apply_equalizer(req)
 
 
 # ===============================================================
@@ -188,6 +199,12 @@ def spectrogram(req: SpectrogramRequest):
     }
 
 
+# Alias for common misspelling
+@app.post("/spectogram")
+def spectogram_alias(req: SpectrogramRequest):
+    return spectrogram(req)
+
+
 
 
 @app.post("/saveEQ")
@@ -216,6 +233,11 @@ def save_eq(req: EQRequestSave):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/saveEq")
+def saveeq_alias(req: EQRequestSave):
+    return save_eq(req)
 
 def rms(x):
     return np.sqrt(np.mean(x**2))

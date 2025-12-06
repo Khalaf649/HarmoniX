@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+numpy
+scipy
+soundfile
+torch
+torchaudio
+httpx
+demucs
+python-multipart
+python-dotenv
