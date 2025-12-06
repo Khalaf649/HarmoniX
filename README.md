@@ -145,7 +145,7 @@ Open the client by serving the `Client` folder (use any static server or open `i
 
 ---
 
-**Project JSON format (summary)**
+# project-json-format
 
 Projects store modes and per-mode I/O. Key fields:
 
@@ -169,7 +169,7 @@ Example snippet (abbreviated):
 
 ---
 
-**AI endpoints (backend)**
+# ai-endpoints
 
 The project expects two AI endpoints on the server:
 
